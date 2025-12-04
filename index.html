@@ -53,20 +53,24 @@
             position: relative;
             max-width: 100vw;
             max-height: 100vh;
-            width: auto;
-            height: auto;
+            width: 1600px;
+            height: 900px;
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 1600px) {
             #gameCanvas {
-                width: 100vw !important;
-                height: auto !important;
+                width: 100vw;
+                height: auto;
             }
         }
 
         @media (orientation: portrait) {
             body {
-                transform: rotate(0deg);
+                overflow: auto;
+            }
+            #gameCanvas {
+                width: 100vw;
+                height: auto;
             }
         }
 
@@ -108,40 +112,6 @@
         
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        
-        // Responsive canvas sizing
-        function resizeCanvas() {
-            const maxWidth = 1600;
-            const maxHeight = 900;
-            const aspectRatio = maxWidth / maxHeight;
-            
-            let width = window.innerWidth;
-            let height = window.innerHeight;
-            
-            // Για κινητά, χρησιμοποίησε όλο το viewport
-            if (width < 768) {
-                if (width / height > aspectRatio) {
-                    width = height * aspectRatio;
-                } else {
-                    height = width / aspectRatio;
-                }
-                canvas.style.width = width + 'px';
-                canvas.style.height = height + 'px';
-            } else {
-                // Για desktop, κράτα το original μέγεθος
-                canvas.style.width = maxWidth + 'px';
-                canvas.style.height = maxHeight + 'px';
-            }
-        }
-        
-        // Initial resize
-        resizeCanvas();
-        
-        // Resize on orientation change or window resize
-        window.addEventListener('resize', resizeCanvas);
-        window.addEventListener('orientationchange', () => {
-            setTimeout(resizeCanvas, 100);
-        });
         
         console.log('Canvas:', canvas);
         console.log('Canvas size:', canvas.width, 'x', canvas.height);
