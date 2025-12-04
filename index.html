@@ -777,7 +777,17 @@
 
             onMouseUp(e) {
                 if (this.selectedPlayer && this.dragStart) {
-                    const pos = this.getMousePos(e);
+                    // Αν δεν υπάρχει valid position (πχ touch που δεν έχει clientX/Y),
+                    // χρησιμοποίησε το τελευταίο currentDrag position
+                    let pos;
+                    if (e && e.clientX !== undefined && e.clientY !== undefined) {
+                        pos = this.getMousePos(e);
+                    } else if (this.currentDrag) {
+                        pos = this.currentDrag;
+                    } else {
+                        pos = this.dragStart;
+                    }
+                    
                     const dragX = pos.x - this.dragStart.x;
                     const dragY = pos.y - this.dragStart.y;
                     
@@ -796,19 +806,43 @@
 
             onTouchStart(e) {
                 e.preventDefault();
+                e.stopPropagation();
                 const touch = e.touches[0];
-                this.onMouseDown(touch);
+                const mouseEvent = {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY,
+                    preventDefault: () => {}
+                };
+                this.onMouseDown(mouseEvent);
             }
 
             onTouchMove(e) {
                 e.preventDefault();
+                e.stopPropagation();
                 const touch = e.touches[0];
-                this.onMouseMove(touch);
+                const mouseEvent = {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY,
+                    preventDefault: () => {}
+                };
+                this.onMouseMove(mouseEvent);
             }
 
             onTouchEnd(e) {
                 e.preventDefault();
-                this.onMouseUp(e);
+                e.stopPropagation();
+                // Για touchend, χρησιμοποιούμε το τελευταίο changedTouches
+                if (e.changedTouches && e.changedTouches.length > 0) {
+                    const touch = e.changedTouches[0];
+                    const mouseEvent = {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY,
+                        preventDefault: () => {}
+                    };
+                    this.onMouseUp(mouseEvent);
+                } else {
+                    this.onMouseUp({});
+                }
             }
 
             drawField() {
