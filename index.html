@@ -663,6 +663,8 @@
                 const maxDragDistance = 200; // Μέγιστη απόσταση που μπορείς να τραβήξεις
                 const dragDistance = Math.sqrt(dragX * dragX + dragY * dragY);
                 
+                console.log('Shooting with drag distance:', dragDistance);
+                
                 // Περιορισμός της απόστασης
                 let limitedDragX = dragX;
                 let limitedDragY = dragY;
@@ -673,12 +675,14 @@
                     limitedDragY = dragY * ratio;
                 }
                 
-                // Αυξημένη δύναμη - πιο δυνατά χτυπήματα
+                // Μειωμένη δύναμη για καλύτερο control - ειδικά για touch
                 const power = Math.min(dragDistance, maxDragDistance) / maxDragDistance; // 0 έως 1
-                const maxSpeed = 38; // Μειωμένο από 42 για καλύτερο collision detection
+                const maxSpeed = 25; // Μειωμένο από 38 για καλύτερο control στο κινητό
                 
                 this.vx = -limitedDragX * (maxSpeed / maxDragDistance);
                 this.vy = -limitedDragY * (maxSpeed / maxDragDistance);
+                
+                console.log('Velocities:', this.vx, this.vy);
                 
                 this.moving = true;
             }
@@ -804,6 +808,20 @@
                     
                     const dragX = pos.x - this.dragStart.x;
                     const dragY = pos.y - this.dragStart.y;
+                    
+                    console.log('Drag values:', dragX, dragY, 'Distance:', Math.sqrt(dragX*dragX + dragY*dragY));
+                    
+                    // Έλεγχος για πολύ μικρό drag (tap χωρίς drag)
+                    const dragDistance = Math.sqrt(dragX * dragX + dragY * dragY);
+                    if (dragDistance < 5) {
+                        // Πολύ μικρό drag - ακύρωση
+                        console.log('Drag too small, canceling');
+                        this.selectedPlayer.selected = false;
+                        this.selectedPlayer = null;
+                        this.dragStart = null;
+                        this.currentDrag = null;
+                        return;
+                    }
                     
                     // Εκτόξευση με slingshot mechanics
                     this.selectedPlayer.shoot(dragX, dragY);
