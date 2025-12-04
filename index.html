@@ -587,13 +587,25 @@
                 const image = this.isBot ? images.duckRed : images.duckBlue;
                 const size = this.radius * 2;  // Διάμετρος
                 
-                ctx.drawImage(
-                    image,
-                    this.x - this.radius,  // Κέντρο - ακτίνα
-                    this.y - this.radius,
-                    size,
-                    size
-                );
+                // Fallback: Αν η εικόνα δεν έχει φορτώσει, σχεδίασε χρωματιστό κύκλο
+                if (image.complete && image.naturalWidth > 0) {
+                    ctx.drawImage(
+                        image,
+                        this.x - this.radius,  // Κέντρο - ακτίνα
+                        this.y - this.radius,
+                        size,
+                        size
+                    );
+                } else {
+                    // Fallback: Σχεδίασε χρωματιστό κύκλο
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = this.isBot ? '#ff3420' : '#2745e1';
+                    ctx.fill();
+                    ctx.strokeStyle = COLORS.white;
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                }
             }
 
             checkCollision(ball) {
@@ -757,12 +769,14 @@
                 if (!this.turnComplete) return;
 
                 const pos = this.getMousePos(e);
+                console.log('Mouse down at:', pos.x, pos.y);
 
                 for (let player of this.playerTeam) {
                     if (player.isClicked(pos.x, pos.y)) {
                         this.selectedPlayer = player;
                         player.selected = true;
                         this.dragStart = { x: player.x, y: player.y };
+                        console.log('Selected player at:', player.x, player.y);
                         break;
                     }
                 }
