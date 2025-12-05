@@ -47,11 +47,68 @@
             z-index: -1;
         }
         
-        /* Κρύψε όλα τα error messages */
-        body > *:not(canvas) {
+        /* Κρύψε όλα τα error messages ΕΚΤΟΣ install button */
+        body > *:not(canvas):not(#installBanner) {
             display: none !important;
             visibility: hidden !important;
             opacity: 0 !important;
+        }
+        
+        /* Install banner για κινητά */
+        #installBanner {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            z-index: 10000;
+            border-top: 3px solid #FFD700;
+            animation: slideUp 0.5s ease;
+        }
+
+        #installBanner.show {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        #installBanner p {
+            margin: 5px 0;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        #installBanner strong {
+            color: #FFD700;
+            font-size: 16px;
+        }
+
+        #installBanner .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        @media (min-width: 1024px) {
+            #installBanner {
+                display: none !important;
+            }
         }
         
         #gameCanvas {
@@ -112,6 +169,14 @@
     </style>
 </head>
 <body>
+    <!-- Install Banner για fullscreen experience -->
+    <div id="installBanner">
+        <button class="close-btn" onclick="closeBanner()">✕</button>
+        <p><strong>📱 Θέλεις πραγματικό Fullscreen;</strong></p>
+        <p><strong>iOS:</strong> Πάτα Share → "Add to Home Screen"</p>
+        <p><strong>Android:</strong> Πάτα Μενού (⋮) → "Install app"</p>
+    </div>
+
     <div class="controls">
         <h3>🎮 Οδηγίες</h3>
         <p>🖱️ Κλικ σε κόκκινο παίκτη</p>
@@ -129,8 +194,40 @@
         console.log('Canvas:', canvas);
         console.log('Canvas size:', canvas.width, 'x', canvas.height);
 
-        // Auto-hide address bar on scroll (for mobile)
+        // Install Banner Logic
+        const installBanner = document.getElementById('installBanner');
+        
+        // Close banner function
+        window.closeBanner = function() {
+            installBanner.classList.remove('show');
+            localStorage.setItem('bannerClosed', 'true');
+        };
+
+        // Show banner on mobile (only if not standalone and not closed before)
         window.addEventListener('load', () => {
+            // Check if running as standalone app (already installed)
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                                window.navigator.standalone === true;
+            
+            // Check if on mobile
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            
+            // Check if user closed it before
+            const bannerClosed = localStorage.getItem('bannerClosed');
+            
+            // Show banner if: mobile AND not standalone AND not closed before
+            if (isMobile && !isStandalone && !bannerClosed) {
+                setTimeout(() => {
+                    installBanner.classList.add('show');
+                    
+                    // Auto-hide after 8 seconds
+                    setTimeout(() => {
+                        installBanner.classList.remove('show');
+                    }, 8000);
+                }, 2000); // Show after 2 seconds
+            }
+            
+            // Auto-hide address bar
             setTimeout(() => {
                 window.scrollTo(0, 1);
             }, 100);
