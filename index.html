@@ -807,7 +807,7 @@
             constructor() {
                 this.reset();
                 this.radius = 15;
-                this.friction = 0.985;  // Μειωμένη τριβή για μεγαλύτερη απόσταση (από 0.97)
+                this.friction = 0.9925;  // Μισή τριβή για πολύ μεγαλύτερη απόσταση! (από 0.985)
                 this.firstShotAfterReset = true;  // Flag για πρώτο shot μετά reset
                 this.inGoal = false;  // Flag αν η μπάλα είναι μέσα στο τέρμα
                 this.goalType = null;  // Τύπος γκολ ('player_goal', 'bot_goal', κτλ)
@@ -1012,7 +1012,7 @@
                 this.selected = false;
                 this.vx = 0;  // Ταχύτητα
                 this.vy = 0;
-                this.friction = 0.98;  // Μειωμένη τριβή για μεγαλύτερη απόσταση (από 0.95)
+                this.friction = 0.99;  // Μισή τριβή για πολύ μεγαλύτερη απόσταση! (από 0.98)
                 this.moving = false;
                 this.collisionCooldown = {};  // Cooldown ανά παίκτη για να μην κολλάνε
                 this.ballCollisionTime = 0;  // Cooldown για την μπάλα
