@@ -294,6 +294,10 @@
             cursor: pointer;
             max-width: 100%;
             max-height: 100vh;
+            display: none; /* Κρυφό μέχρι να ξεκινήσει το παιχνίδι */
+        }
+
+        #gameCanvas.active {
             display: block;
         }
 
@@ -438,6 +442,7 @@
         function startLocalGame() {
             isMultiplayer = false;
             document.getElementById('menuScreen').classList.add('hidden');
+            document.getElementById('gameCanvas').classList.add('active');
             startGame();
         }
 
@@ -584,6 +589,7 @@
 
         function startMultiplayerGame() {
             document.getElementById('menuScreen').classList.add('hidden');
+            document.getElementById('gameCanvas').classList.add('active');
             startGame();
             setupMultiplayerSync();
         }
