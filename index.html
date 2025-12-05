@@ -184,17 +184,18 @@
             if (!document.fullscreenElement && 
                 !document.webkitFullscreenElement && 
                 !document.mozFullScreenElement) {
-                // Enter fullscreen
-                if (canvas.requestFullscreen) {
-                    canvas.requestFullscreen();
-                } else if (canvas.webkitRequestFullscreen) {
-                    canvas.webkitRequestFullscreen();
-                } else if (canvas.mozRequestFullScreen) {
-                    canvas.mozRequestFullScreen();
-                } else if (canvas.msRequestFullscreen) {
-                    canvas.msRequestFullscreen();
+                // Enter fullscreen - Use document.documentElement for better compatibility
+                const elem = document.documentElement;
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen();
+                } else if (elem.webkitRequestFullscreen) {
+                    elem.webkitRequestFullscreen();
+                } else if (elem.mozRequestFullScreen) {
+                    elem.mozRequestFullScreen();
+                } else if (elem.msRequestFullscreen) {
+                    elem.msRequestFullscreen();
                 }
-                fullscreenBtn.textContent = '✕ Exit Fullscreen';
+                fullscreenBtn.textContent = '✕ Exit';
             } else {
                 // Exit fullscreen
                 if (document.exitFullscreen) {
@@ -206,22 +207,38 @@
                 } else if (document.msExitFullscreen) {
                     document.msExitFullscreen();
                 }
-                fullscreenBtn.textContent = '⛶ Fullscreen';
+                fullscreenBtn.textContent = '⛶ Full';
             }
         }
         
         fullscreenBtn.addEventListener('click', toggleFullscreen);
+        fullscreenBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            toggleFullscreen();
+        });
         
         // Update button text on fullscreen change
         document.addEventListener('fullscreenchange', () => {
             if (!document.fullscreenElement) {
-                fullscreenBtn.textContent = '⛶ Fullscreen';
+                fullscreenBtn.textContent = '⛶ Full';
+            } else {
+                fullscreenBtn.textContent = '✕ Exit';
             }
         });
         
         document.addEventListener('webkitfullscreenchange', () => {
             if (!document.webkitFullscreenElement) {
-                fullscreenBtn.textContent = '⛶ Fullscreen';
+                fullscreenBtn.textContent = '⛶ Full';
+            } else {
+                fullscreenBtn.textContent = '✕ Exit';
+            }
+        });
+        
+        document.addEventListener('mozfullscreenchange', () => {
+            if (!document.mozFullScreenElement) {
+                fullscreenBtn.textContent = '⛶ Full';
+            } else {
+                fullscreenBtn.textContent = '✕ Exit';
             }
         });
 
