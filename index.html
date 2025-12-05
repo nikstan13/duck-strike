@@ -1299,29 +1299,26 @@
 
             shoot(dragX, dragY) {
                 // Αντίστροφη κατεύθυνση (slingshot)
-                const maxDragDistance = 200; // Μέγιστη απόσταση που μπορείς να τραβήξεις
+                const maxDragDistance = 200; // Μέγιστη απόσταση για full power
                 const dragDistance = Math.sqrt(dragX * dragX + dragY * dragY);
                 
                 console.log('Shooting with drag distance:', dragDistance);
                 
-                // Περιορισμός της απόστασης
-                let limitedDragX = dragX;
-                let limitedDragY = dragY;
+                // Υπολογισμός power (0 έως 1) - χρησιμοποιεί το ORIGINAL drag distance
+                const power = Math.min(dragDistance / maxDragDistance, 1.0); // Capped at 1.0
                 
-                if (dragDistance > maxDragDistance) {
-                    const ratio = maxDragDistance / dragDistance;
-                    limitedDragX = dragX * ratio;
-                    limitedDragY = dragY * ratio;
-                }
+                // Κανονικοποίηση κατεύθυνσης (unit vector)
+                const dirX = dragDistance > 0 ? dragX / dragDistance : 0;
+                const dirY = dragDistance > 0 ? dragY / dragDistance : 0;
                 
-                // Μειωμένη δύναμη για καλύτερο control - ειδικά για touch
-                const power = Math.min(dragDistance, maxDragDistance) / maxDragDistance; // 0 έως 1
-                const maxSpeed = 25; // Μειωμένο από 38 για καλύτερο control στο κινητό
+                // Μέγιστη ταχύτητα
+                const maxSpeed = 25;
                 
-                this.vx = -limitedDragX * (maxSpeed / maxDragDistance);
-                this.vy = -limitedDragY * (maxSpeed / maxDragDistance);
+                // Εφαρμογή ταχύτητας: κατεύθυνση * power * maxSpeed
+                this.vx = -dirX * power * maxSpeed;
+                this.vy = -dirY * power * maxSpeed;
                 
-                console.log('Velocities:', this.vx, this.vy);
+                console.log('Power:', power, 'Velocities:', this.vx, this.vy);
                 
                 this.moving = true;
             }
