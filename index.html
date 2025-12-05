@@ -5,22 +5,1825 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="description" content="Duck Strike - A fun soccer pool game with slingshot mechanics">
-    <title>Duck Strike - Soccer Pool Game</title>
-    
-    <!-- Stylesheet -->
-    <link rel="stylesheet" href="style.css">
+    <title>Duck Strike - Soccer Pool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #ffa797;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            position: relative;
+            touch-action: none;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #ffa797;
+            z-index: -1;
+        }
+        
+        /* Κρύψε όλα τα error messages */
+        body > *:not(canvas):not(#fullscreenBtn) {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+        }
+        
+        #gameCanvas {
+            display: block !important;
+            position: relative;
+            max-width: 100vw;
+            max-height: 100vh;
+            width: 1600px;
+            height: 900px;
+        }
+
+        /* Fullscreen button */
+        #fullscreenBtn {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: 2px solid white;
+            border-radius: 10px;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        #fullscreenBtn:hover {
+            background: rgba(0, 0, 0, 0.9);
+            transform: scale(1.05);
+        }
+
+        #fullscreenBtn:active {
+            transform: scale(0.95);
+        }
+
+        /* Hide button on desktop */
+        @media (min-width: 1024px) {
+            #fullscreenBtn {
+                display: none !important;
+            }
+        }
+
+        /* Fullscreen styles */
+        #gameCanvas:-webkit-full-screen {
+            width: 100vw;
+            height: 100vh;
+            max-width: 100vw;
+            max-height: 100vh;
+        }
+
+        #gameCanvas:-moz-full-screen {
+            width: 100vw;
+            height: 100vh;
+            max-width: 100vw;
+            max-height: 100vh;
+        }
+
+        #gameCanvas:fullscreen {
+            width: 100vw;
+            height: 100vh;
+            max-width: 100vw;
+            max-height: 100vh;
+        }
+
+        @media (max-width: 1600px) {
+            #gameCanvas {
+                width: 100vw;
+                height: auto;
+            }
+        }
+
+        @media (orientation: portrait) {
+            body {
+                overflow: auto;
+            }
+            #gameCanvas {
+                width: 100vw;
+                height: auto;
+            }
+        }
+
+        #gameCanvas {
+            border: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            cursor: pointer;
+            max-width: 100%;
+            max-height: 100vh;
+            display: block;
+        }
+
+        .controls {
+            display: none; /* Απόκρυψη οδηγιών */
+        }
+
+        .controls h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .controls p {
+            margin: 5px 0;
+            color: #666;
+        }
+    </style>
 </head>
 <body>
-    <!-- Fullscreen button (mobile only) -->
-    <button id="fullscreenBtn" aria-label="Toggle Fullscreen">⛶ Full</button>
+    <button id="fullscreenBtn">⛶ Fullscreen</button>
     
-    <!-- Game Canvas -->
-    <canvas id="gameCanvas" width="1600" height="900">
-        Your browser does not support the HTML5 canvas element.
-    </canvas>
-    
-    <!-- Game Script -->
-    <script src="game.js"></script>
+    <div class="controls">
+        <h3>🎮 Οδηγίες</h3>
+        <p>🖱️ Κλικ σε κόκκινο παίκτη</p>
+        <p>↔️ Τράβηξε προς την ΑΝΤΙΘΕΤΗ κατεύθυνση</p>
+        <p>🚀 Όσο πιο πολύ τραβήξεις = πιο δυνατά!</p>
+        <p>⚽ Σκόραρε γκολ στο τέρμα του BOT!</p>
+    </div>    <canvas id="gameCanvas" width="1600" height="900"></canvas>
+
+    <script>
+        console.log('Script started!');
+        
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        console.log('Canvas:', canvas);
+        console.log('Canvas size:', canvas.width, 'x', canvas.height);
+
+        // Fullscreen functionality
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        
+        function toggleFullscreen() {
+            if (!document.fullscreenElement && 
+                !document.webkitFullscreenElement && 
+                !document.mozFullScreenElement) {
+                // Enter fullscreen - Use document.documentElement for better compatibility
+                const elem = document.documentElement;
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen();
+                } else if (elem.webkitRequestFullscreen) {
+                    elem.webkitRequestFullscreen();
+                } else if (elem.mozRequestFullScreen) {
+                    elem.mozRequestFullScreen();
+                } else if (elem.msRequestFullscreen) {
+                    elem.msRequestFullscreen();
+                }
+                fullscreenBtn.textContent = '✕ Exit';
+            } else {
+                // Exit fullscreen
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+                fullscreenBtn.textContent = '⛶ Full';
+            }
+        }
+        
+        fullscreenBtn.addEventListener('click', toggleFullscreen);
+        fullscreenBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            toggleFullscreen();
+        });
+        
+        // Update button text on fullscreen change
+        document.addEventListener('fullscreenchange', () => {
+            if (!document.fullscreenElement) {
+                fullscreenBtn.textContent = '⛶ Full';
+            } else {
+                fullscreenBtn.textContent = '✕ Exit';
+            }
+        });
+        
+        document.addEventListener('webkitfullscreenchange', () => {
+            if (!document.webkitFullscreenElement) {
+                fullscreenBtn.textContent = '⛶ Full';
+            } else {
+                fullscreenBtn.textContent = '✕ Exit';
+            }
+        });
+        
+        document.addEventListener('mozfullscreenchange', () => {
+            if (!document.mozFullScreenElement) {
+                fullscreenBtn.textContent = '⛶ Full';
+            } else {
+                fullscreenBtn.textContent = '✕ Exit';
+            }
+        });
+
+        // Χρώματα
+        const COLORS = {
+            green: '#00C853',  // Πιο ζωντανό, φωτεινό πράσινο (από #4caf50)
+            white: '#ffffff',
+            black: '#000000',
+            red: '#f44336',
+            blue: '#2196f3',
+            cyan: '#00e5ff',
+            orange: '#ffa797',
+            darkGrey: '#424242',
+            lightBlue: '#64b5f6',
+            lightRed: '#ff8a80'
+        };
+
+        // Φόρτωση εικόνων
+        const images = {
+            duckRed: new Image(),
+            duckBlue: new Image()
+        };
+        
+        images.duckRed.src = './assets/duck_red.png';
+        images.duckBlue.src = './assets/duck_blue.png';
+        
+        // Αναμονή φόρτωσης εικόνων
+        let imagesLoaded = 0;
+        const totalImages = 2;
+        
+        images.duckRed.onload = () => {
+            imagesLoaded++;
+            console.log('Duck Red loaded!');
+            if (imagesLoaded === totalImages) startGame();
+        };
+        
+        images.duckBlue.onload = () => {
+            imagesLoaded++;
+            console.log('Duck Blue loaded!');
+            if (imagesLoaded === totalImages) startGame();
+        };
+        
+        images.duckRed.onerror = () => {
+            console.error('Failed to load duck_red.png - Check path: ./assets/duck_red.png');
+        };
+        
+        images.duckBlue.onerror = () => {
+            console.error('Failed to load duck_blue.png - Check path: ./assets/duck_blue.png');
+        };
+
+        // Μπάλα
+        class Ball {
+            constructor() {
+                this.reset();
+                this.radius = 15;
+                this.friction = 0.97;  // Αυξημένη τριβή (από 0.98)
+                this.firstShotAfterReset = true;  // Flag για πρώτο shot μετά reset
+                this.inGoal = false;  // Flag αν η μπάλα είναι μέσα στο τέρμα
+                this.goalType = null;  // Τύπος γκολ ('player_goal', 'bot_goal', κτλ)
+                this.goalTime = 0;  // Χρόνος που μπήκε γκολ
+            }
+
+            reset() {
+                // Κέντρο του γηπέδου (όχι του canvas)
+                const topMargin = 180;
+                const bottomMargin = 80;
+                this.x = canvas.width / 2;
+                this.y = (topMargin + (canvas.height - bottomMargin)) / 2;  // Κέντρο γηπέδου
+                this.vx = 0;
+                this.vy = 0;
+                this.firstShotAfterReset = true;  // Επαναφορά flag μετά από reset
+                this.inGoal = false;
+                this.goalType = null;
+                this.goalTime = 0;
+            }
+
+            update() {
+                // Αν η μπάλα είναι μέσα στο τέρμα, επιβράδυνση δραματική (δίχτυ)
+                if (this.inGoal) {
+                    this.vx *= 0.75;  // Ακόμα πιο μεγάλη επιβράδυνση
+                    this.vy *= 0.75;
+                    
+                    // Αν η ταχύτητα είναι πολύ μικρή, σταμάτα εντελώς
+                    if (Math.abs(this.vx) < 0.5) this.vx = 0;
+                    if (Math.abs(this.vy) < 0.5) this.vy = 0;
+                    
+                    // Μετά από 0.5 δευτερόλεπτα, επιστροφή του goalType
+                    if (Date.now() - this.goalTime >= 500) {
+                        return this.goalType;  // Επιστροφή του τύπου γκολ
+                    }
+                }
+                
+                // Sub-stepping για πιο ακριβή collision detection
+                const substeps = 5;
+                
+                for (let i = 0; i < substeps; i++) {
+                    this.x += this.vx / substeps;
+                    this.y += this.vy / substeps;
+                    
+                    // Έλεγχος ορίων ΜΕΣΑ στο substep loop για πιο ακριβή detection
+                    this.checkBoundaries();
+                }
+                
+                // Easing function - Exponential decay για πιο φυσική επιβράδυνση
+                if (!this.inGoal) {  // Μόνο αν ΔΕΝ είναι στο τέρμα
+                    const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                    
+                    if (speed > 0.1) {
+                        const decayFactor = Math.pow(this.friction, 1.2);
+                        this.vx *= decayFactor;
+                        this.vy *= decayFactor;
+                    } else {
+                        this.vx = 0;
+                        this.vy = 0;
+                    }
+                }
+
+                return null;
+            }
+
+            checkBoundaries() {
+                // Νέα όρια γηπέδου
+                const sideMargin = 240;
+                const topMargin = 180;
+                const bottomMargin = 80;
+                
+                // Υπολογισμός θέσης κέντρου για τους ελέγχους
+                const centerX = canvas.width / 2;
+                const centerY = (topMargin + (canvas.height - bottomMargin)) / 2;
+                
+                // Σύνορα πάνω-κάτω
+                if (this.y - this.radius < topMargin) {
+                    this.y = topMargin + this.radius;
+                    this.vy *= -0.6;
+                } else if (this.y + this.radius > canvas.height - bottomMargin) {
+                    this.y = canvas.height - bottomMargin - this.radius;
+                    this.vy *= -0.6;
+                }
+
+                // Τέρματα - Αριστερά και Δεξιά - Η μπάλα μπαίνει μέσα!
+                const fieldCenterY = (topMargin + (canvas.height - bottomMargin)) / 2;
+                const goalHeight = 180;
+                const goalTop = fieldCenterY - (goalHeight / 2);
+                const goalBottom = fieldCenterY + (goalHeight / 2);
+                const goalDepth = 60;  // Βάθος τέρματος (πόσο μπορεί να μπει η μπάλα πίσω)
+                
+                // Αριστερό τέρμα (Player σκοράρει) - Ολόκληρη η μπάλα πρέπει να περάσει
+                if (this.x + this.radius < sideMargin && this.y > goalTop && this.y < goalBottom) {  
+                    // Μπάλα μπήκε στο τέρμα!
+                    if (!this.inGoal) {  // Πρώτη φορά που μπαίνει
+                        this.inGoal = true;
+                        this.goalTime = Date.now();
+                        
+                        // Έλεγχος ΦΑΟΥΛ
+                        if (this.firstShotAfterReset) {
+                            this.goalType = 'foul_player_goal';
+                        } else {
+                            this.goalType = 'player_goal';
+                        }
+                    }
+                    
+                    // Όριο πίσω γραμμής τέρματος (αριστερά) - ΣΤΑΜΑΤΑ ΕΔΩ!
+                    const backLine = sideMargin - goalDepth;
+                    if (this.x - this.radius <= backLine) {
+                        this.x = backLine + this.radius;
+                        this.vx = 0;  // ΠΛΗΡΗΣ ΣΤΑΣΗ
+                        this.vy = 0;  // ΠΛΗΡΗΣ ΣΤΑΣΗ και κατακόρυφα
+                    }
+                    
+                    // Όρια πάνω-κάτω μέσα στο τέρμα - ΣΚΛΗΡΑ ΟΡΙΑ
+                    if (this.y - this.radius <= goalTop) {
+                        this.y = goalTop + this.radius;
+                        this.vy = 0;  // ΠΛΗΡΗΣ ΣΤΑΣΗ
+                    }
+                    if (this.y + this.radius >= goalBottom) {
+                        this.y = goalBottom - this.radius;
+                        this.vy = 0;  // ΠΛΗΡΗΣ ΣΤΑΣΗ
+                    }
+                    
+                    return;  // Όχι null, απλά return
+                }
+                
+                // Bounce από τον αριστερό τοίχο (εκτός τέρματος)
+                if (this.x - this.radius < sideMargin && this.x + this.radius >= sideMargin) {
+                    if (this.y < goalTop || this.y > goalBottom) {
+                        this.x = sideMargin + this.radius;
+                        this.vx *= -0.6;
+                    }
+                }
+                
+                // Δεξί τέρμα (Bot σκοράρει) - Ολόκληρη η μπάλα πρέπει να περάσει
+                if (this.x - this.radius > canvas.width - sideMargin && this.y > goalTop && this.y < goalBottom) {  
+                    // Μπάλα μπήκε στο τέρμα!
+                    if (!this.inGoal) {  // Πρώτη φορά που μπαίνει
+                        this.inGoal = true;
+                        this.goalTime = Date.now();
+                        
+                        // Έλεγχος ΦΑΟΥΛ
+                        if (this.firstShotAfterReset) {
+                            this.goalType = 'foul_bot_goal';
+                        } else {
+                            this.goalType = 'bot_goal';
+                        }
+                    }
+                    
+                    // Όριο πίσω γραμμής τέρματος (δεξιά) - ΣΤΑΜΑΤΑ ΕΔΩ!
+                    const backLine = canvas.width - sideMargin + goalDepth;
+                    if (this.x + this.radius >= backLine) {
+                        this.x = backLine - this.radius;
+                        this.vx = 0;  // ΠΛΗΡΗΣ ΣΤΑΣΗ
+                        this.vy = 0;  // ΠΛΗΡΗΣ ΣΤΑΣΗ και κατακόρυφα
+                    }
+                    
+                    // Όρια πάνω-κάτω μέσα στο τέρμα - ΣΚΛΗΡΑ ΟΡΙΑ
+                    if (this.y - this.radius <= goalTop) {
+                        this.y = goalTop + this.radius;
+                        this.vy = 0;  // ΠΛΗΡΗΣ ΣΤΑΣΗ
+                    }
+                    if (this.y + this.radius >= goalBottom) {
+                        this.y = goalBottom - this.radius;
+                        this.vy = 0;  // ΠΛΗΡΗΣ ΣΤΑΣΗ
+                    }
+                    
+                    return;  // Όχι null, απλά return
+                }
+                
+                // Bounce από τον δεξί τοίχο (εκτός τέρματος)
+                if (this.x + this.radius > canvas.width - sideMargin && this.x - this.radius <= canvas.width - sideMargin) {
+                    if (this.y < goalTop || this.y > goalBottom) {
+                        this.x = canvas.width - sideMargin - this.radius;
+                        this.vx *= -0.6;
+                    }
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = COLORS.black;
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius - 3, 0, Math.PI * 2);
+                ctx.fillStyle = COLORS.white;
+                ctx.fill();
+            }
+        }
+
+        // Παίκτης
+        class Player {
+            constructor(x, y, color, isBot = false) {
+                this.x = x;
+                this.y = y;
+                this.startX = x;  // Αρχική θέση (σταθερή)
+                this.startY = y;  // Αρχική θέση (σταθερή)
+                this.radius = 30;
+                this.color = color;
+                this.isBot = isBot;
+                this.selected = false;
+                this.vx = 0;  // Ταχύτητα
+                this.vy = 0;
+                this.friction = 0.95;
+                this.moving = false;
+                this.collisionCooldown = {};  // Cooldown ανά παίκτη για να μην κολλάνε
+                this.ballCollisionTime = 0;  // Cooldown για την μπάλα
+                this.isRelocating = false;  // Flag για animation μετακίνησης
+                this.relocateTarget = null;  // Προορισμός μετακίνησης
+                this.relocateStartTime = 0;  // Χρόνος έναρξης animation
+                this.relocateStartPos = null;  // Αρχική θέση animation
+            }
+
+            update() {
+                // Animation μετακίνησης από τέρμα
+                if (this.isRelocating) {
+                    const duration = 800;  // 0.8 δευτερόλεπτα
+                    const elapsed = Date.now() - this.relocateStartTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    // Easing function - smooth in-out
+                    const eased = progress < 0.5 
+                        ? 2 * progress * progress 
+                        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+                    
+                    // Interpolation
+                    this.x = this.relocateStartPos.x + (this.relocateTarget.x - this.relocateStartPos.x) * eased;
+                    this.y = this.relocateStartPos.y + (this.relocateTarget.y - this.relocateStartPos.y) * eased;
+                    
+                    // Τέλος animation
+                    if (progress >= 1) {
+                        this.x = this.relocateTarget.x;
+                        this.y = this.relocateTarget.y;
+                        this.isRelocating = false;
+                        this.relocateTarget = null;
+                    }
+                    
+                    return;  // Δεν κάνουμε κανονική κίνηση όσο relocate
+                }
+                
+                if (this.moving) {
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    
+                    // Easing function για παίκτες - Smooth exponential decay
+                    const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                    
+                    if (speed > 0.5) {
+                        // Exponential decay για πιο φυσική κίνηση
+                        const decayFactor = Math.pow(this.friction, 1.15);
+                        this.vx *= decayFactor;
+                        this.vy *= decayFactor;
+                    } else {
+                        // Πλήρης στάση
+                        this.vx = 0;
+                        this.vy = 0;
+                        this.moving = false;
+                    }
+
+                    // Σύνορα γηπέδου - Νέα όρια (20% μικρότερο πλάτος)
+                    const sideMargin = 240;  // Αυξημένο από 80 (πλευρικά)
+                    const topMargin = 180;
+                    const bottomMargin = 80;  // Κάτω παραμένει το ίδιο
+                    
+                    // Έλεγχος ορίων - ΑΛΛΑ επιτρέπουμε είσοδο στα τέρματα
+                    const centerY = (topMargin + (canvas.height - bottomMargin)) / 2;
+                    const goalHeight = 180;
+                    const goalTop = centerY - (goalHeight / 2);
+                    const goalBottom = centerY + (goalHeight / 2);
+                    
+                    // Αριστερό όριο - εκτός αν είναι μέσα στο τέρμα
+                    if (this.x - this.radius < sideMargin) {
+                        if (this.y < goalTop || this.y > goalBottom) {
+                            // Εκτός τέρματος - bounce
+                            this.x = sideMargin + this.radius;
+                            this.vx *= -0.5;
+                        } else {
+                            // Μέσα στο τέρμα - όριο πίσω γραμμής
+                            const goalDepth = 60;
+                            const backLine = sideMargin - goalDepth;
+                            if (this.x - this.radius < backLine) {
+                                this.x = backLine + this.radius;
+                                this.vx = 0;  // ΣΤΑΣΗ
+                                this.vy *= 0.7;
+                            }
+                            // Όρια πάνω-κάτω ΜΕΣΑ στο τέρμα (δοκάρια)
+                            if (this.y - this.radius < goalTop) {
+                                this.y = goalTop + this.radius;
+                                this.vy = 0;
+                            }
+                            if (this.y + this.radius > goalBottom) {
+                                this.y = goalBottom - this.radius;
+                                this.vy = 0;
+                            }
+                        }
+                    }
+                    
+                    // Δεξί όριο - εκτός αν είναι μέσα στο τέρμα
+                    if (this.x + this.radius > canvas.width - sideMargin) {
+                        if (this.y < goalTop || this.y > goalBottom) {
+                            // Εκτός τέρματος - bounce
+                            this.x = canvas.width - sideMargin - this.radius;
+                            this.vx *= -0.5;
+                        } else {
+                            // Μέσα στο τέρμα - όριο πίσω γραμμής
+                            const goalDepth = 60;
+                            const backLine = canvas.width - sideMargin + goalDepth;
+                            if (this.x + this.radius > backLine) {
+                                this.x = backLine - this.radius;
+                                this.vx = 0;  // ΣΤΑΣΗ
+                                this.vy *= 0.7;
+                            }
+                            // Όρια πάνω-κάτω ΜΕΣΑ στο τέρμα (δοκάρια)
+                            if (this.y - this.radius < goalTop) {
+                                this.y = goalTop + this.radius;
+                                this.vy = 0;
+                            }
+                            if (this.y + this.radius > goalBottom) {
+                                this.y = goalBottom - this.radius;
+                                this.vy = 0;
+                            }
+                        }
+                    }
+                    
+                    // Πάνω-κάτω όρια (κανονικά)
+                    if (this.y - this.radius < topMargin) {
+                        this.y = topMargin + this.radius;
+                        this.vy *= -0.5;
+                    }
+                    if (this.y + this.radius > canvas.height - bottomMargin) {
+                        this.y = canvas.height - bottomMargin - this.radius;
+                        this.vy *= -0.5;
+                    }
+                }
+            }
+
+            checkPlayerCollision(otherPlayer) {
+                // Collision μεταξύ παικτών
+                const dx = otherPlayer.x - this.x;
+                const dy = otherPlayer.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const minDist = this.radius + otherPlayer.radius;
+
+                if (distance < minDist && distance > 0) {
+                    // Έλεγχος cooldown - αν μόλις χτύπησαν, μην το ξανακάνεις αμέσως
+                    const otherId = otherPlayer.x + '_' + otherPlayer.y;  // Unique ID
+                    if (this.collisionCooldown[otherId] && Date.now() - this.collisionCooldown[otherId] < 100) {
+                        return;  // Περίμενε λίγο πριν την επόμενη collision
+                    }
+                    this.collisionCooldown[otherId] = Date.now();
+                    
+                    // Υπολογισμός γωνίας σύγκρουσης
+                    const angle = Math.atan2(dy, dx);
+                    const overlap = minDist - distance;
+                    
+                    // ΑΜΕΣΟΣ και ΠΛΗΡΗΣ χωρισμός - με παραπάνω απόσταση
+                    const separation = overlap + 2;  // +2 για να σιγουρευτούμε ότι δεν επικαλύπτονται
+                    const pushX = Math.cos(angle) * separation / 2;
+                    const pushY = Math.sin(angle) * separation / 2;
+                    
+                    this.x -= pushX;
+                    this.y -= pushY;
+                    otherPlayer.x += pushX;
+                    otherPlayer.y += pushY;
+                    
+                    // Μεταφορά ενέργειας (ορμής) σαν μπιλιάρδο
+                    // Υπολογισμός σχετικής ταχύτητας
+                    const relVx = this.vx - otherPlayer.vx;
+                    const relVy = this.vy - otherPlayer.vy;
+                    
+                    // Προβολή της σχετικής ταχύτητας στη γραμμή σύγκρουσης
+                    const relVelocityDotNormal = relVx * Math.cos(angle) + relVy * Math.sin(angle);
+                    
+                    // Αν απομακρύνονται ήδη, μην κάνεις τίποτα με την ταχύτητα
+                    if (relVelocityDotNormal > 0) return;
+                    
+                    // Συντελεστής ελαστικότητας (0.85 = λίγη απώλεια ενέργειας, πιο ρεαλιστικό)
+                    const restitution = 0.85;
+                    
+                    // Υπολογισμός impulse (ώθησης)
+                    const impulse = -(1 + restitution) * relVelocityDotNormal / 2;
+                    
+                    // Εφαρμογή impulse
+                    const impulseX = impulse * Math.cos(angle);
+                    const impulseY = impulse * Math.sin(angle);
+                    
+                    this.vx -= impulseX;
+                    this.vy -= impulseY;
+                    otherPlayer.vx += impulseX;
+                    otherPlayer.vy += impulseY;
+                    
+                    // Αν κάποιος παίκτης δεν κινούνταν, τώρα κινείται
+                    if (!this.moving && (Math.abs(this.vx) > 0.5 || Math.abs(this.vy) > 0.5)) {
+                        this.moving = true;
+                    }
+                    if (!otherPlayer.moving && (Math.abs(otherPlayer.vx) > 0.5 || Math.abs(otherPlayer.vy) > 0.5)) {
+                        otherPlayer.moving = true;
+                    }
+                }
+            }
+
+            draw() {
+                // Δακτύλιος αν επιλεγμένος
+                if (this.selected) {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius + 8, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#FFD700';  // Χρυσό για highlight
+                    ctx.lineWidth = 5;
+                    ctx.stroke();
+                }
+
+                // Σχεδίαση εικόνας duck - ΑΝΤΙΣΤΡΟΦΑ!
+                // Κόκκινοι παίκτες (YOU) → Μπλε πάπια
+                // Μπλε παίκτες (BOT) → Κόκκινα πάπια
+                const image = this.isBot ? images.duckRed : images.duckBlue;
+                const size = this.radius * 2;  // Διάμετρος
+                
+                // Fallback: Αν η εικόνα δεν έχει φορτώσει, σχεδίασε χρωματιστό κύκλο
+                if (image.complete && image.naturalWidth > 0) {
+                    ctx.drawImage(
+                        image,
+                        this.x - this.radius,  // Κέντρο - ακτίνα
+                        this.y - this.radius,
+                        size,
+                        size
+                    );
+                } else {
+                    // Fallback: Σχεδίασε χρωματιστό κύκλο
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = this.isBot ? '#ff3420' : '#2745e1';
+                    ctx.fill();
+                    ctx.strokeStyle = COLORS.white;
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                }
+            }
+
+            checkCollision(ball) {
+                const dx = ball.x - this.x;
+                const dy = ball.y - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const minDistance = this.radius + ball.radius;
+
+                if (distance < minDistance && distance > 0) {
+                    // Cooldown για να μην χτυπάει συνέχεια την ίδια μπάλα
+                    if (Date.now() - this.ballCollisionTime < 30) {  // Μειώθηκε από 50 σε 30
+                        return;  // Περίμενε 30ms πριν το επόμενο χτύπημα
+                    }
+                    this.ballCollisionTime = Date.now();
+                    
+                    const angle = Math.atan2(dy, dx);
+                    const overlap = minDistance - distance;
+                    
+                    // ΠΡΩΤΑ χωρίζουμε τη μπάλα από τον παίκτη με ακόμα μεγαλύτερη απόσταση
+                    const separationMultiplier = 1.2;  // Αυξημένο από 1.1 σε 1.2
+                    ball.x += Math.cos(angle) * (overlap * separationMultiplier + 3);  // +3 pixels extra
+                    ball.y += Math.sin(angle) * (overlap * separationMultiplier + 3);
+                    
+                    // Μεταφορά ορμής από παίκτη σε μπάλα (impulse-based physics)
+                    const relativeVx = this.vx - ball.vx;
+                    const relativeVy = this.vy - ball.vy;
+                    
+                    // Προβολή της σχετικής ταχύτητας στη γραμμή σύγκρουσης
+                    const relVelocityDotNormal = relativeVx * Math.cos(angle) + relativeVy * Math.sin(angle);
+                    
+                    // Αν απομακρύνονται ήδη, μην κάνεις τίποτα
+                    if (relVelocityDotNormal < 0) return;
+                    
+                    // Συντελεστής ελαστικότητας και μεταφορά μάζας
+                    const restitution = 0.9;  // Λίγη απώλεια ενέργειας
+                    const massRatio = 0.8;  // Ο παίκτης είναι βαρύτερος, άρα περισσότερη μεταφορά
+                    
+                    // Υπολογισμός impulse
+                    const impulse = (1 + restitution) * relVelocityDotNormal * massRatio;
+                    
+                    // Εφαρμογή impulse στη μπάλα
+                    ball.vx += Math.cos(angle) * impulse;
+                    ball.vy += Math.sin(angle) * impulse;
+                }
+            }
+
+            isClicked(x, y) {
+                const dx = x - this.x;
+                const dy = y - this.y;
+                return Math.sqrt(dx * dx + dy * dy) <= this.radius;
+            }
+
+            shoot(dragX, dragY) {
+                // Αντίστροφη κατεύθυνση (slingshot)
+                const maxDragDistance = 200; // Μέγιστη απόσταση που μπορείς να τραβήξεις
+                const dragDistance = Math.sqrt(dragX * dragX + dragY * dragY);
+                
+                console.log('Shooting with drag distance:', dragDistance);
+                
+                // Περιορισμός της απόστασης
+                let limitedDragX = dragX;
+                let limitedDragY = dragY;
+                
+                if (dragDistance > maxDragDistance) {
+                    const ratio = maxDragDistance / dragDistance;
+                    limitedDragX = dragX * ratio;
+                    limitedDragY = dragY * ratio;
+                }
+                
+                // Μειωμένη δύναμη για καλύτερο control - ειδικά για touch
+                const power = Math.min(dragDistance, maxDragDistance) / maxDragDistance; // 0 έως 1
+                const maxSpeed = 25; // Μειωμένο από 38 για καλύτερο control στο κινητό
+                
+                this.vx = -limitedDragX * (maxSpeed / maxDragDistance);
+                this.vy = -limitedDragY * (maxSpeed / maxDragDistance);
+                
+                console.log('Velocities:', this.vx, this.vy);
+                
+                this.moving = true;
+            }
+        }
+
+        // Παιχνίδι
+        class Game {
+            constructor() {
+                this.ball = new Ball();
+                this.playerScore = 0;
+                this.botScore = 0;
+                this.currentTurn = 'player'; // 'player' ή 'bot'
+                this.turnComplete = true;
+                this.goalMessage = null;  // Μήνυμα γκολ
+                this.goalMessageTime = 0;  // Χρόνος εμφάνισης μηνύματος
+                
+                // Δοκάρια τερμάτων
+                const margin = 240;
+                const topMargin = 180;
+                const centerY = (topMargin + (canvas.height - 80)) / 2;
+                
+                this.goalPosts = [
+                    // Αριστερό τέρμα
+                    { x: margin, y: centerY - 90, radius: 8 },  // Πάνω
+                    { x: margin, y: centerY + 90, radius: 8 },  // Κάτω
+                    // Δεξί τέρμα
+                    { x: canvas.width - margin, y: centerY - 90, radius: 8 },  // Πάνω
+                    { x: canvas.width - margin, y: centerY + 90, radius: 8 }   // Κάτω
+                ];
+                
+                // Αρχικές θέσεις παικτών - Οριζόντιο γήπεδο
+                
+                this.initialPositions = {
+                    player: [
+                        { x: margin + 150, y: centerY - 180 },
+                        { x: margin + 150, y: centerY + 180 },
+                        { x: margin + 280, y: centerY - 100 },
+                        { x: margin + 100, y: centerY },
+                        { x: margin + 280, y: centerY + 100 }
+                    ],
+                    bot: [
+                        { x: canvas.width - margin - 150, y: centerY - 180 },
+                        { x: canvas.width - margin - 150, y: centerY + 180 },
+                        { x: canvas.width - margin - 280, y: centerY - 100 },
+                        { x: canvas.width - margin - 100, y: centerY },
+                        { x: canvas.width - margin - 280, y: centerY + 100 }
+                    ]
+                };
+                
+                // Παίκτες (κόκκινοι - κάτω)
+                this.playerTeam = this.initialPositions.player.map(pos => 
+                    new Player(pos.x, pos.y, COLORS.red)
+                );
+
+                // Bot (μπλε - πάνω)
+                this.botTeam = this.initialPositions.bot.map(pos => 
+                    new Player(pos.x, pos.y, COLORS.blue, true)
+                );
+
+                this.selectedPlayer = null;
+                this.dragStart = null;
+                this.currentDrag = null;
+                this.setupEvents();
+            }
+
+            setupEvents() {
+                canvas.addEventListener('mousedown', (e) => this.onMouseDown(e));
+                canvas.addEventListener('mousemove', (e) => this.onMouseMove(e));
+                canvas.addEventListener('mouseup', (e) => this.onMouseUp(e));
+                canvas.addEventListener('touchstart', (e) => this.onTouchStart(e));
+                canvas.addEventListener('touchmove', (e) => this.onTouchMove(e));
+                canvas.addEventListener('touchend', (e) => this.onTouchEnd(e));
+            }
+
+            getMousePos(e) {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                return {
+                    x: (e.clientX - rect.left) * scaleX,
+                    y: (e.clientY - rect.top) * scaleY
+                };
+            }
+
+            onMouseDown(e) {
+                // Έλεγχος αν είναι σειρά του παίκτη
+                if (this.currentTurn !== 'player') return;
+                if (!this.turnComplete) return;
+
+                const pos = this.getMousePos(e);
+                console.log('Mouse down at:', pos.x, pos.y);
+
+                for (let player of this.playerTeam) {
+                    if (player.isClicked(pos.x, pos.y)) {
+                        this.selectedPlayer = player;
+                        player.selected = true;
+                        this.dragStart = { x: player.x, y: player.y };
+                        console.log('Selected player at:', player.x, player.y);
+                        break;
+                    }
+                }
+            }
+
+            onMouseMove(e) {
+                if (this.selectedPlayer && this.dragStart) {
+                    const pos = this.getMousePos(e);
+                    this.currentDrag = pos;
+                }
+            }
+
+            onMouseUp(e) {
+                if (this.selectedPlayer && this.dragStart) {
+                    // Αν δεν υπάρχει valid position (πχ touch που δεν έχει clientX/Y),
+                    // χρησιμοποίησε το τελευταίο currentDrag position
+                    let pos;
+                    if (e && e.clientX !== undefined && e.clientY !== undefined) {
+                        pos = this.getMousePos(e);
+                    } else if (this.currentDrag) {
+                        pos = this.currentDrag;
+                    } else {
+                        pos = this.dragStart;
+                    }
+                    
+                    const dragX = pos.x - this.dragStart.x;
+                    const dragY = pos.y - this.dragStart.y;
+                    
+                    console.log('Drag values:', dragX, dragY, 'Distance:', Math.sqrt(dragX*dragX + dragY*dragY));
+                    
+                    // Έλεγχος για πολύ μικρό drag (tap χωρίς drag)
+                    const dragDistance = Math.sqrt(dragX * dragX + dragY * dragY);
+                    if (dragDistance < 5) {
+                        // Πολύ μικρό drag - ακύρωση
+                        console.log('Drag too small, canceling');
+                        this.selectedPlayer.selected = false;
+                        this.selectedPlayer = null;
+                        this.dragStart = null;
+                        this.currentDrag = null;
+                        return;
+                    }
+                    
+                    // Εκτόξευση με slingshot mechanics
+                    this.selectedPlayer.shoot(dragX, dragY);
+                    
+                    // Ξεκινάει η σειρά
+                    this.turnComplete = false;
+                    
+                    this.selectedPlayer.selected = false;
+                    this.selectedPlayer = null;
+                    this.dragStart = null;
+                    this.currentDrag = null;
+                }
+            }
+
+            onTouchStart(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const touch = e.touches[0];
+                const mouseEvent = {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY,
+                    preventDefault: () => {}
+                };
+                this.onMouseDown(mouseEvent);
+            }
+
+            onTouchMove(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const touch = e.touches[0];
+                const mouseEvent = {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY,
+                    preventDefault: () => {}
+                };
+                this.onMouseMove(mouseEvent);
+            }
+
+            onTouchEnd(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                // Για touchend, χρησιμοποιούμε το τελευταίο changedTouches
+                if (e.changedTouches && e.changedTouches.length > 0) {
+                    const touch = e.changedTouches[0];
+                    const mouseEvent = {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY,
+                        preventDefault: () => {}
+                    };
+                    this.onMouseUp(mouseEvent);
+                } else {
+                    this.onMouseUp({});
+                }
+            }
+
+            drawField() {
+                // Φόντο
+                ctx.fillStyle = COLORS.orange;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Ταμπέλα σκορ στο φόντο (πάνω από το γήπεδο)
+                this.drawScoreboard();
+
+                // Γήπεδο - 20% μικρότερο πλάτος
+                const sideMargin = 240;  // Αυξημένο από 80 (80 + 20% του πλάτους)
+                const topMargin = 180;
+                const bottomMargin = 80;
+                
+                // Στρογγυλεμένο γήπεδο με ακτίνα καμπύλης στις γωνίες
+                const fieldCornerRadius = 30;
+                const borderWidth = 45;  // Πλάτος του γκρι περιγράμματος (αυξημένο από 25)
+                
+                // Γκρι περίγραμμα (εξωτερικό πλαίσιο)
+                ctx.fillStyle = '#8a8a8a';  // Γκρι χρώμα όπως στην εικόνα
+                ctx.beginPath();
+                ctx.roundRect(
+                    sideMargin - borderWidth, 
+                    topMargin - borderWidth, 
+                    canvas.width - (sideMargin * 2) + (borderWidth * 2), 
+                    canvas.height - topMargin - bottomMargin + (borderWidth * 2), 
+                    fieldCornerRadius + 5
+                );
+                ctx.fill();
+                
+                // Πράσινο γήπεδο
+                ctx.fillStyle = COLORS.green;
+                ctx.beginPath();
+                ctx.roundRect(sideMargin, topMargin, canvas.width - (sideMargin * 2), canvas.height - topMargin - bottomMargin, fieldCornerRadius);
+                ctx.fill();
+                
+                // Λευκό outline του γηπέδου
+                ctx.strokeStyle = COLORS.white;
+                ctx.lineWidth = 6;  // Αυξημένο από 3 σε 6
+                ctx.beginPath();
+                ctx.roundRect(sideMargin, topMargin, canvas.width - (sideMargin * 2), canvas.height - topMargin - bottomMargin, fieldCornerRadius);
+                ctx.stroke();
+
+                // Μεσαία γραμμή - Κάθετη
+                ctx.beginPath();
+                ctx.moveTo(canvas.width / 2, topMargin);
+                ctx.lineTo(canvas.width / 2, canvas.height - bottomMargin);
+                ctx.strokeStyle = COLORS.white;
+                ctx.lineWidth = 6;  // Αυξημένο από 3 σε 6
+                ctx.stroke();
+
+                // Κεντρικός κύκλος - 50% μεγαλύτερος (από 70 σε 105)
+                ctx.beginPath();
+                const centerX = canvas.width / 2;
+                const centerY = (topMargin + (canvas.height - bottomMargin)) / 2;
+                ctx.arc(centerX, centerY, 105, 0, Math.PI * 2);  // Αυξημένο από 70 σε 105
+                ctx.strokeStyle = COLORS.white;
+                ctx.lineWidth = 6;  // Αυξημένο από 3 σε 6
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, 8, 0, Math.PI * 2);
+                ctx.fillStyle = COLORS.black;
+                ctx.fill();
+
+                // Περιοχές - Οριζόντια (50% μεγαλύτερες)
+                ctx.strokeStyle = COLORS.white;
+                ctx.lineWidth = 6;  // Αυξημένο από 3 σε 6
+                // Αριστερά
+                ctx.strokeRect(sideMargin, centerY - 195, 150, 390);  // Μεγάλη περιοχή (100->150, 260->390)
+                ctx.strokeRect(sideMargin, centerY - 120, 75, 240);   // Μικρή περιοχή (50->75, 160->240)
+                
+                // Ημικύκλιο αριστερής περιοχής - ΕΞΩ προς τα αριστερά
+                ctx.beginPath();
+                ctx.arc(sideMargin + 150, centerY, 60, -Math.PI / 2, Math.PI / 2);
+                ctx.stroke();
+                
+                // Δεξιά
+                ctx.strokeRect(canvas.width - sideMargin - 150, centerY - 195, 150, 390);  // Μεγάλη περιοχή
+                ctx.strokeRect(canvas.width - sideMargin - 75, centerY - 120, 75, 240);   // Μικρή περιοχή
+                
+                // Ημικύκλιο δεξιάς περιοχής - ΕΞΩ προς τα δεξιά
+                ctx.beginPath();
+                ctx.arc(canvas.width - sideMargin - 150, centerY, 60, Math.PI / 2, Math.PI * 1.5);
+                ctx.stroke();
+
+                // Τεταρτημόρια κόρνερ
+                const cornerRadius = 40;
+                ctx.lineWidth = 6;
+                ctx.strokeStyle = COLORS.white;
+                
+                // Πάνω αριστερά
+                ctx.beginPath();
+                ctx.arc(sideMargin, topMargin, cornerRadius, 0, Math.PI / 2);
+                ctx.stroke();
+                
+                // Πάνω δεξιά
+                ctx.beginPath();
+                ctx.arc(canvas.width - sideMargin, topMargin, cornerRadius, Math.PI / 2, Math.PI);
+                ctx.stroke();
+                
+                // Κάτω αριστερά
+                ctx.beginPath();
+                ctx.arc(sideMargin, canvas.height - bottomMargin, cornerRadius, Math.PI * 1.5, Math.PI * 2);
+                ctx.stroke();
+                
+                // Κάτω δεξιά
+                ctx.beginPath();
+                ctx.arc(canvas.width - sideMargin, canvas.height - bottomMargin, cornerRadius, Math.PI, Math.PI * 1.5);
+                ctx.stroke();
+
+                // Τέρμα αριστερά (Player) - Κόκκινο
+                ctx.fillStyle = COLORS.lightRed;
+                ctx.fillRect(sideMargin - 55, centerY - 90, 55, 180);
+                ctx.strokeStyle = COLORS.white;
+                ctx.lineWidth = 6;  // Αυξημένο από 4 σε 6
+                ctx.strokeRect(sideMargin - 55, centerY - 90, 55, 180);
+
+                // Δίχτυ αριστερού τέρματος (πρώτα)
+                this.drawGoalNet(sideMargin - 55, centerY - 90, 55, 180, 'left');
+
+                // Τέρμα δεξιά (Bot) - Μπλε
+                ctx.fillStyle = COLORS.cyan;
+                ctx.fillRect(canvas.width - sideMargin, centerY - 90, 55, 180);
+                ctx.strokeStyle = COLORS.white;
+                ctx.lineWidth = 6;  // Αυξημένο από 4 σε 6
+                ctx.strokeRect(canvas.width - sideMargin, centerY - 90, 55, 180);
+                
+                // Δίχτυ δεξιού τέρματος (πρώτα)
+                this.drawGoalNet(canvas.width - sideMargin, centerY - 90, 55, 180, 'right');
+                
+                // ΤΑ ΔΟΚΑΡΙΑ ΘΑ ΣΧΕΔΙΑΣΤΟΥΝ ΣΤΟ draw() - ΟΧΙ ΕΔΩ!
+            }
+
+            drawGoalPost(x, y, radius, color) {
+                // Σχεδίαση δοκαριού (κύκλος)
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.fill();
+                // Πολύ λεπτό λευκό outline για definition
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+
+            drawGoalNet(x, y, width, height, side) {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';  // Λευκό ημιδιαφανές
+                ctx.lineWidth = 1.5;
+                
+                const gridSize = 15;  // Μέγεθος κάθε τετράγωνου στο δίχτυ
+                
+                // Κάθετες γραμμές
+                for (let i = gridSize; i < width; i += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(x + i, y);
+                    ctx.lineTo(x + i, y + height);
+                    ctx.stroke();
+                }
+                
+                // Οριζόντιες γραμμές
+                for (let j = gridSize; j < height; j += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, y + j);
+                    ctx.lineTo(x + width, y + j);
+                    ctx.stroke();
+                }
+                
+                // Διαγώνιες για πιο ρεαλιστικό δίχτυ (προαιρετικό)
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';  // Ακόμα πιο ημιδιαφανές
+                ctx.lineWidth = 1;
+                
+                for (let i = 0; i < width; i += gridSize) {
+                    for (let j = 0; j < height; j += gridSize) {
+                        ctx.beginPath();
+                        ctx.moveTo(x + i, y + j);
+                        ctx.lineTo(x + i + gridSize, y + j + gridSize);
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            drawScoreboard() {
+                // Σύγχρονο minimalist scoreboard - Πάνω κέντρο
+                const scoreboardWidth = 400;
+                const scoreboardHeight = 100;
+                const scoreboardX = canvas.width / 2 - scoreboardWidth / 2;
+                const scoreboardY = 20;
+                
+                // Κύριο background με ημιδιάφανο μαύρο
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+                ctx.roundRect(scoreboardX, scoreboardY, scoreboardWidth, scoreboardHeight, 15);
+                ctx.fill();
+                
+                // Λευκό outline
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 2;
+                ctx.roundRect(scoreboardX, scoreboardY, scoreboardWidth, scoreboardHeight, 15);
+                ctx.stroke();
+                
+                // Αριστερό τμήμα - Μπλε ομάδα (Player)
+                const leftSectionX = scoreboardX + 20;
+                const leftSectionY = scoreboardY + 25;
+                
+                // Σκορ μπλε ομάδας (Player - αριστερά)
+                ctx.font = 'bold 48px Arial';
+                ctx.fillStyle = '#2745e1';
+                ctx.textAlign = 'center';
+                ctx.fillText(this.playerScore, leftSectionX + 50, leftSectionY + 40);
+                
+                // Divider στη μέση
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.font = 'bold 40px Arial';
+                ctx.fillText(':', canvas.width / 2, leftSectionY + 38);
+                
+                // Δεξί τμήμα - Κόκκινη ομάδα (Bot)
+                const rightSectionX = scoreboardX + scoreboardWidth - 120;
+                
+                // Σκορ κόκκινης ομάδας (Bot - δεξιά)
+                ctx.font = 'bold 48px Arial';
+                ctx.fillStyle = '#ff3420';
+                ctx.textAlign = 'center';
+                ctx.fillText(this.botScore, rightSectionX + 50, leftSectionY + 40);
+                
+                // Reset text align
+                ctx.textAlign = 'left';
+            }
+
+            resetPositions() {
+                // Reset παικτών στις αρχικές θέσεις
+                this.playerTeam.forEach((player, i) => {
+                    player.x = this.initialPositions.player[i].x;
+                    player.y = this.initialPositions.player[i].y;
+                    player.vx = 0;
+                    player.vy = 0;
+                    player.moving = false;
+                });
+                
+                this.botTeam.forEach((player, i) => {
+                    player.x = this.initialPositions.bot[i].x;
+                    player.y = this.initialPositions.bot[i].y;
+                    player.vx = 0;
+                    player.vy = 0;
+                    player.moving = false;
+                });
+                
+                // Reset μπάλας
+                this.ball.reset();
+            }
+
+            botMove() {
+                // ✅ Phase 1.1: Bot παίζει μόνο όταν είναι η σειρά του
+                if (this.currentTurn !== 'bot') return;
+                if (!this.turnComplete) return;
+
+                // Μικρή καθυστέρηση για πιο φυσική αίσθηση
+                if (!this.botThinkingTime) {
+                    this.botThinkingTime = Date.now();
+                }
+                
+                if (Date.now() - this.botThinkingTime < 1000) return; // 1 δευτερόλεπτο σκέψη
+                
+                this.botThinkingTime = null;
+
+                // ✅ Phase 1.2: Προσδιορισμός θέσης player goal (αριστερά)
+                const sideMargin = 240;
+                const topMargin = 180;
+                const bottomMargin = 80;
+                const fieldCenterY = (topMargin + (canvas.height - bottomMargin)) / 2;
+                const playerGoalX = sideMargin - 27.5; // Κέντρο τέρματος
+                const playerGoalY = fieldCenterY;
+
+                // ✅ Phase 3: Smart Player Selection - Βρες τον καλύτερο παίκτη
+                let bestPlayer = null;
+                let bestScore = -Infinity;
+
+                for (let bot of this.botTeam) {
+                    const score = this.evaluatePlayerQuality(bot, this.ball, {x: playerGoalX, y: playerGoalY});
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestPlayer = bot;
+                    }
+                }
+
+                if (!bestPlayer) return;
+
+                // ✅ Phase 4: Adaptive Strategy - Καθόρισε στρατηγική
+                const strategy = this.determineStrategy();
+                
+                // ✅ Phase 2: Goal-Oriented Aiming - Υπολογισμός shot προς τέρμα
+                const shotVector = this.calculateShotToGoal(
+                    bestPlayer, 
+                    this.ball, 
+                    {x: playerGoalX, y: playerGoalY},
+                    strategy
+                );
+
+                // Fallback: Αν δεν μπορεί να σκοράρει, χτύπα απλά την μπάλα
+                if (!shotVector || !shotVector.canShoot) {
+                    const dx = this.ball.x - bestPlayer.x;
+                    const dy = this.ball.y - bestPlayer.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist > 10) { // Αν η μπάλα είναι πολύ κοντά, skip
+                        const power = 30;
+                        bestPlayer.vx = (dx / dist) * power;
+                        bestPlayer.vy = (dy / dist) * power;
+                        bestPlayer.moving = true;
+                        this.turnComplete = false;
+                    }
+                    return;
+                }
+
+                // ✅ Phase 5: Human-like Imperfection - Πρόσθεσε λάθος
+                const finalShot = this.addHumanError(shotVector.vx, shotVector.vy, 0.12);
+                
+                bestPlayer.vx = finalShot.vx;
+                bestPlayer.vy = finalShot.vy;
+                bestPlayer.moving = true;
+                
+                // Ξεκινάει η σειρά
+                this.turnComplete = false;
+            }
+
+            // ✅ Phase 2.2: Υπολογισμός shot που στοχεύει το τέρμα
+            calculateShotToGoal(player, ball, goal, strategy) {
+                // 2.2a: Διάνυσμα player → ball
+                const toBallX = ball.x - player.x;
+                const toBallY = ball.y - player.y;
+                const distToBall = Math.sqrt(toBallX * toBallX + toBallY * toBallY);
+                
+                // Έλεγχος αν είναι πολύ κοντά ή πολύ μακριά - πιο ανεκτικά όρια
+                if (distToBall < 10) {
+                    return {canShoot: false}; // Πολύ κοντά
+                }
+                
+                if (distToBall > 800) {
+                    return {canShoot: false}; // Πολύ μακριά
+                }
+
+                // 2.2b: Διάνυσμα ball → goal
+                const ballToGoalX = goal.x - ball.x;
+                const ballToGoalY = goal.y - ball.y;
+                
+                // 2.2c: Υπολογισμός έμμεσης κατεύθυνσης (χτύπημα μπάλας προς τέρμα)
+                // Κανονικοποίηση κατεύθυνσης προς μπάλα
+                const dirX = toBallX / distToBall;
+                const dirY = toBallY / distToBall;
+                
+                // Power βάσει strategy και απόστασης
+                let basePower;
+                if (strategy === 'aggressive') {
+                    basePower = 35 + Math.random() * 15; // 35-50
+                } else if (strategy === 'defensive') {
+                    basePower = 20 + Math.random() * 15; // 20-35
+                } else {
+                    basePower = 25 + Math.random() * 15; // 25-40
+                }
+                
+                // Προσαρμογή power βάσει απόστασης
+                if (distToBall > 400) {
+                    basePower *= 1.2; // Πιο δυνατά για μακρινά shots
+                }
+                
+                // 2.2d: Επιστροφή κατεύθυνσης
+                return {
+                    canShoot: true,
+                    vx: dirX * basePower,
+                    vy: dirY * basePower,
+                    quality: 1 - (distToBall / 800) // Quality score 0-1
+                };
+            }
+
+            // ✅ Phase 3.1: Αξιολόγηση ποιότητας παίκτη
+            evaluatePlayerQuality(player, ball, goal) {
+                // 3.1a: Distance score (πιο κοντά = καλύτερο)
+                const distToBall = Math.sqrt(
+                    (ball.x - player.x) ** 2 + (ball.y - player.y) ** 2
+                );
+                
+                // Πιο ανεκτικό distance scoring
+                const distanceScore = Math.max(0, 1 - distToBall / 800);
+
+                // 3.1b: Angle score (καλύτερη γωνία για σκοράρισμα)
+                const playerToBallX = ball.x - player.x;
+                const playerToBallY = ball.y - player.y;
+                const ballToGoalX = goal.x - ball.x;
+                const ballToGoalY = goal.y - ball.y;
+                
+                // Υπολογισμός γωνίας player-ball-goal
+                const angle1 = Math.atan2(playerToBallY, playerToBallX);
+                const angle2 = Math.atan2(ballToGoalY, ballToGoalX);
+                let angleDiff = Math.abs(angle1 - angle2);
+                if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
+                
+                // Άριστη γωνία = 180° (ευθεία γραμμή player-ball-goal)
+                const angleScore = Math.max(0.2, 1 - (angleDiff / Math.PI)); // Τουλάχιστον 0.2
+
+                // 3.1d: Weighted sum - τουλάχιστον 0.1 για να υπάρχει πάντα κάποιος score
+                const totalScore = Math.max(0.1, (distanceScore * 0.4) + (angleScore * 0.6));
+                
+                return totalScore;
+            }
+
+            // ✅ Phase 4.2: Καθορισμός στρατηγικής
+            determineStrategy() {
+                if (this.botScore < this.playerScore) {
+                    return 'aggressive'; // Χάνει, πιο επιθετικό
+                } else if (this.botScore > this.playerScore) {
+                    return 'defensive'; // Κερδίζει, πιο προσεκτικό
+                } else {
+                    return 'balanced'; // Ισοπαλία
+                }
+            }
+
+            // ✅ Phase 5.2: Πρόσθεσε ανθρώπινο λάθος
+            addHumanError(vx, vy, errorRate) {
+                // 15% πιθανότητα λάθους
+                if (Math.random() > errorRate) {
+                    return {vx, vy}; // Τέλειο shot
+                }
+
+                // Πρόσθεσε τυχαία απόκλιση
+                const speed = Math.sqrt(vx * vx + vy * vy);
+                const angle = Math.atan2(vy, vx);
+                
+                // ±10 degrees τυχαία απόκλιση
+                const angleError = (Math.random() - 0.5) * (Math.PI / 18); // ±10°
+                const newAngle = angle + angleError;
+                
+                // ±15% απόκλιση στη δύναμη
+                const powerError = 0.85 + Math.random() * 0.3; // 0.85-1.15
+                const newSpeed = speed * powerError;
+                
+                return {
+                    vx: Math.cos(newAngle) * newSpeed,
+                    vy: Math.sin(newAngle) * newSpeed
+                };
+            }
+
+            checkTurnComplete() {
+                // Ελέγχει αν όλα έχουν σταματήσει
+                const anyMoving = [...this.playerTeam, ...this.botTeam].some(p => p.moving);
+                const ballMoving = Math.abs(this.ball.vx) > 0.1 || Math.abs(this.ball.vy) > 0.1;
+                
+                if (!anyMoving && !ballMoving && !this.turnComplete) {
+                    // Έλεγχος αν κάποιος παίκτης είναι μέσα στο τέρμα > 70%
+                    this.checkPlayersInGoal();
+                    
+                    this.turnComplete = true;
+                    // Αλλαγή σειράς
+                    this.currentTurn = this.currentTurn === 'player' ? 'bot' : 'player';
+                    
+                    // Μετά το πρώτο shot, το flag γίνεται false
+                    if (this.ball.firstShotAfterReset) {
+                        this.ball.firstShotAfterReset = false;
+                    }
+                }
+            }
+
+            checkPlayersInGoal() {
+                const sideMargin = 240;
+                const topMargin = 180;
+                const bottomMargin = 80;
+                const centerY = (topMargin + (canvas.height - bottomMargin)) / 2;
+                const goalHeight = 180;
+                const goalTop = centerY - (goalHeight / 2);
+                const goalBottom = centerY + (goalHeight / 2);
+                const goalWidth = 55;
+                
+                const allPlayers = [...this.playerTeam, ...this.botTeam];
+                
+                allPlayers.forEach(player => {
+                    let insideGoalPercentage = 0;
+                    let targetX, targetY;
+                    let inLeftGoal = false;
+                    let inRightGoal = false;
+                    
+                    // Έλεγχος αριστερό τέρμα
+                    if (player.x < sideMargin && player.y > goalTop && player.y < goalBottom) {
+                        const distanceInside = sideMargin - player.x;
+                        insideGoalPercentage = (distanceInside / player.radius) * 100;
+                        inLeftGoal = true;
+                    }
+                    
+                    // Έλεγχος δεξί τέρμα
+                    if (player.x > canvas.width - sideMargin && player.y > goalTop && player.y < goalBottom) {
+                        const distanceInside = player.x - (canvas.width - sideMargin);
+                        insideGoalPercentage = (distanceInside / player.radius) * 100;
+                        inRightGoal = true;
+                    }
+                    
+                    // Αν είναι > 70% μέσα, βγάλε τον έξω με animation
+                    if (insideGoalPercentage > 70) {
+                        // Τυχαία θέση στην κορυφή της μεγάλης περιοχής
+                        const penaltyBoxWidth = 150;
+                        const penaltyBoxHeight = 390;
+                        
+                        if (inLeftGoal) {
+                            // Αριστερή μεγάλη περιοχή - κορυφή (δεξιά γραμμή)
+                            targetX = sideMargin + penaltyBoxWidth;
+                            targetY = centerY - penaltyBoxHeight/2 + Math.random() * penaltyBoxHeight;
+                        } else if (inRightGoal) {
+                            // Δεξιά μεγάλη περιοχή - κορυφή (αριστερή γραμμή)
+                            targetX = canvas.width - sideMargin - penaltyBoxWidth;
+                            targetY = centerY - penaltyBoxHeight/2 + Math.random() * penaltyBoxHeight;
+                        }
+                        
+                        // Ενεργοποίηση animation
+                        player.isRelocating = true;
+                        player.relocateTarget = { x: targetX, y: targetY };
+                        player.relocateStartTime = Date.now();
+                        player.relocateStartPos = { x: player.x, y: player.y };
+                    }
+                });
+            }
+
+            update() {
+                // Έλεγχος αν υπάρχει μήνυμα γκολ
+                if (this.goalMessage) {
+                    const elapsed = Date.now() - this.goalMessageTime;
+                    if (elapsed >= 2000) {  // 2 δευτερόλεπτα
+                        this.goalMessage = null;
+                        this.resetPositions();
+                        this.turnComplete = true;
+                    }
+                    return;  // Δεν ενημερώνουμε τίποτα άλλο όσο εμφανίζεται το μήνυμα
+                }
+                
+                const goal = this.ball.update();
+                
+                if (goal === 'player_goal') {
+                    this.botScore++;
+                    this.goalMessage = 'ΓΚΟΛ!\nΣκόραρε το BOT!';
+                    this.goalMessageTime = Date.now();
+                    this.currentTurn = 'player'; // Αυτός που έφαγε γκολ παίζει
+                } else if (goal === 'bot_goal') {
+                    this.playerScore++;
+                    this.goalMessage = 'ΓΚΟΛ!\nΣκόραρες!';
+                    this.goalMessageTime = Date.now();
+                    this.currentTurn = 'bot'; // Αυτός που έφαγε γκολ παίζει
+                } else if (goal === 'foul_player_goal') {
+                    // ΦΑΟΥΛ! Το bot προσπάθησε να σκοράρει από το κέντρο
+                    this.goalMessage = 'ΦΑΟΥΛ!\nΔεν μπορείς να σκοράρεις\nαπό το κέντρο!';
+                    this.goalMessageTime = Date.now();
+                    this.currentTurn = 'player'; // Παίζει ο player
+                } else if (goal === 'foul_bot_goal') {
+                    // ΦΑΟΥΛ! Ο player προσπάθησε να σκοράρει από το κέντρο
+                    this.goalMessage = 'ΦΑΟΥΛ!\nΔεν μπορείς να σκοράρεις\nαπό το κέντρο!';
+                    this.goalMessageTime = Date.now();
+                    this.currentTurn = 'bot'; // Παίζει ο bot
+                }
+
+                // Έλεγχος αν τελείωσε η σειρά
+                this.checkTurnComplete();
+                
+                // Bot κίνηση
+                this.botMove();
+
+                // Ενημέρωση παικτών
+                const allPlayers = [...this.playerTeam, ...this.botTeam];
+                allPlayers.forEach(player => {
+                    player.update();
+                    player.checkCollision(this.ball);
+                    
+                    // Collision με δοκάρια
+                    this.goalPosts.forEach(post => {
+                        this.checkGoalPostCollision(player, post);
+                    });
+                });
+                
+                // Collision μπάλας με δοκάρια
+                this.goalPosts.forEach(post => {
+                    this.checkBallGoalPostCollision(this.ball, post);
+                });
+                
+                // Έλεγχος συγκρούσεων μεταξύ παικτών
+                for (let i = 0; i < allPlayers.length; i++) {
+                    for (let j = i + 1; j < allPlayers.length; j++) {
+                        allPlayers[i].checkPlayerCollision(allPlayers[j]);
+                    }
+                }
+            }
+
+            checkGoalPostCollision(player, post) {
+                const dx = player.x - post.x;
+                const dy = player.y - post.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const minDistance = player.radius + post.radius;
+                
+                if (distance < minDistance && distance > 0) {
+                    // Χωρισμός
+                    const angle = Math.atan2(dy, dx);
+                    const overlap = minDistance - distance;
+                    
+                    player.x += Math.cos(angle) * (overlap + 2);
+                    player.y += Math.sin(angle) * (overlap + 2);
+                    
+                    // Bounce
+                    const relVelocity = player.vx * Math.cos(angle) + player.vy * Math.sin(angle);
+                    if (relVelocity < 0) {
+                        player.vx -= 1.5 * relVelocity * Math.cos(angle);
+                        player.vy -= 1.5 * relVelocity * Math.sin(angle);
+                    }
+                }
+            }
+
+            checkBallGoalPostCollision(ball, post) {
+                const dx = ball.x - post.x;
+                const dy = ball.y - post.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const minDistance = ball.radius + post.radius;
+                
+                if (distance < minDistance && distance > 0) {
+                    // Χωρισμός
+                    const angle = Math.atan2(dy, dx);
+                    const overlap = minDistance - distance;
+                    
+                    ball.x += Math.cos(angle) * (overlap + 2);
+                    ball.y += Math.sin(angle) * (overlap + 2);
+                    
+                    // Bounce με restitution
+                    const relVelocity = ball.vx * Math.cos(angle) + ball.vy * Math.sin(angle);
+                    if (relVelocity < 0) {
+                        const restitution = 0.7;  // Χάνει λίγη ενέργεια
+                        ball.vx -= (1 + restitution) * relVelocity * Math.cos(angle);
+                        ball.vy -= (1 + restitution) * relVelocity * Math.sin(angle);
+                    }
+                }
+            }
+
+            draw() {
+                this.drawField();
+                
+                // Σχεδίαση ταμπέλας σκορ πρώτα (πίσω από το γήπεδο αλλά εμφανής)
+                this.drawScoreboard();
+                
+                // Σχεδίαση γραμμής slingshot αν τραβιέται
+                if (this.selectedPlayer && this.dragStart && this.currentDrag) {
+                    const dx = this.dragStart.x - this.currentDrag.x;
+                    const dy = this.dragStart.y - this.currentDrag.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    // Μέγιστη απόσταση και πραγματική δύναμη
+                    const maxDragDistance = 200;
+                    const actualDistance = Math.min(distance, maxDragDistance);
+                    const power = (actualDistance / maxDragDistance) * 100; // 0-100%
+                    
+                    // Γραμμή σφεντόνας - Πιο παχιά
+                    ctx.beginPath();
+                    ctx.moveTo(this.selectedPlayer.x, this.selectedPlayer.y);
+                    ctx.lineTo(this.currentDrag.x, this.currentDrag.y);
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+                    ctx.lineWidth = 5;
+                    ctx.stroke();
+                    
+                    // Βέλος που δείχνει την κατεύθυνση εκτόξευσης - Συνεπές μήκος
+                    const arrowLength = actualDistance * 1.0; // Το βέλος είναι ανάλογο της δύναμης
+                    const angle = Math.atan2(-dy, -dx);
+                    const arrowX = this.selectedPlayer.x + Math.cos(angle) * arrowLength;
+                    const arrowY = this.selectedPlayer.y + Math.sin(angle) * arrowLength;
+                    
+                    // Βέλος με gradient - χρώμα ανάλογο της δύναμης
+                    const gradient = ctx.createLinearGradient(
+                        this.selectedPlayer.x, this.selectedPlayer.y,
+                        arrowX, arrowY
+                    );
+                    
+                    if (power < 33) {
+                        gradient.addColorStop(0, 'rgba(100, 255, 100, 1)'); // Πράσινο = χαμηλή δύναμη
+                        gradient.addColorStop(1, 'rgba(255, 255, 100, 1)');
+                    } else if (power < 66) {
+                        gradient.addColorStop(0, 'rgba(255, 255, 100, 1)'); // Κίτρινο = μεσαία δύναμη
+                        gradient.addColorStop(1, 'rgba(255, 200, 0, 1)');
+                    } else {
+                        gradient.addColorStop(0, 'rgba(255, 200, 0, 1)'); // Πορτοκαλί/Κόκκινο = υψηλή δύναμη
+                        gradient.addColorStop(1, 'rgba(255, 100, 0, 1)');
+                    }
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(this.selectedPlayer.x, this.selectedPlayer.y);
+                    ctx.lineTo(arrowX, arrowY);
+                    ctx.strokeStyle = gradient;
+                    ctx.lineWidth = 8;
+                    ctx.stroke();
+                    
+                    // Κεφάλι βέλους - Μεγαλύτερο
+                    const arrowHeadSize = 20;
+                    ctx.beginPath();
+                    ctx.moveTo(arrowX, arrowY);
+                    ctx.lineTo(
+                        arrowX - arrowHeadSize * Math.cos(angle - Math.PI / 6),
+                        arrowY - arrowHeadSize * Math.sin(angle - Math.PI / 6)
+                    );
+                    ctx.moveTo(arrowX, arrowY);
+                    ctx.lineTo(
+                        arrowX - arrowHeadSize * Math.cos(angle + Math.PI / 6),
+                        arrowY - arrowHeadSize * Math.sin(angle + Math.PI / 6)
+                    );
+                    ctx.strokeStyle = power > 66 ? 'rgba(255, 100, 0, 1)' : 'rgba(255, 200, 0, 1)';
+                    ctx.lineWidth = 8;
+                    ctx.stroke();
+                    
+                    // Δείκτης δύναμης - ΑΚΡΙΒΗΣ ποσοστό
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                    ctx.font = 'bold 32px Arial';
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+                    ctx.lineWidth = 3;
+                    const powerText = `${Math.floor(power)}%`;
+                    ctx.strokeText(powerText, this.currentDrag.x + 30, this.currentDrag.y - 30);
+                    ctx.fillText(powerText, this.currentDrag.x + 30, this.currentDrag.y - 30);
+                    
+                    // Προειδοποίηση αν έφτασες το μέγιστο
+                    if (distance >= maxDragDistance) {
+                        ctx.fillStyle = 'rgba(255, 50, 50, 0.95)';
+                        ctx.font = 'bold 24px Arial';
+                        ctx.strokeText('MAX!', this.currentDrag.x + 30, this.currentDrag.y - 65);
+                        ctx.fillText('MAX!', this.currentDrag.x + 30, this.currentDrag.y - 65);
+                    }
+                }
+                
+                this.botTeam.forEach(p => p.draw());
+                this.playerTeam.forEach(p => p.draw());
+                
+                this.ball.draw();
+                
+                // ΔΟΚΑΡΙΑ - ΤΕΛΕΥΤΑΙΑ ΠΡΑΓΜΑΤΑ ΠΟΥ ΣΧΕΔΙΑΖΟΝΤΑΙ (πάνω από ΟΛΑ)
+                const sideMargin2 = 240;
+                const topMargin2 = 180;
+                const bottomMargin2 = 80;
+                const centerY2 = (topMargin2 + (canvas.height - bottomMargin2)) / 2;
+                
+                // Αριστερά (ΜΠΛΕ)
+                this.drawGoalPost(sideMargin2, centerY2 - 90, 8, '#2745e1');
+                this.drawGoalPost(sideMargin2, centerY2 + 90, 8, '#2745e1');
+                // Δεξιά (ΚΟΚΚΙΝΑ)
+                this.drawGoalPost(canvas.width - sideMargin2, centerY2 - 90, 8, '#ff3420');
+                this.drawGoalPost(canvas.width - sideMargin2, centerY2 + 90, 8, '#ff3420');
+                
+                // Εμφάνιση μηνύματος γκολ ή φάουλ
+                if (this.goalMessage) {
+                    // Σκοτεινό overlay
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    
+                    const lines = this.goalMessage.split('\n');
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    // Έλεγχος αν είναι ΦΑΟΥΛ ή ΓΚΟΛ
+                    const isFoul = lines[0] === 'ΦΑΟΥΛ!';
+                    
+                    // Πρώτη γραμμή - ΓΚΟΛ ή ΦΑΟΥΛ
+                    ctx.font = 'bold 120px Arial';
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+                    ctx.lineWidth = 8;
+                    ctx.strokeText(lines[0], canvas.width / 2, canvas.height / 2 - 60);
+                    
+                    if (isFoul) {
+                        // ΦΑΟΥΛ - Κόκκινο gradient
+                        const foulGradient = ctx.createLinearGradient(0, canvas.height / 2 - 120, 0, canvas.height / 2);
+                        foulGradient.addColorStop(0, '#FF0000');
+                        foulGradient.addColorStop(1, '#CC0000');
+                        ctx.fillStyle = foulGradient;
+                        ctx.fillText(lines[0], canvas.width / 2, canvas.height / 2 - 60);
+                    } else {
+                        // ΓΚΟΛ - Χρυσό gradient
+                        const goalGradient = ctx.createLinearGradient(0, canvas.height / 2 - 120, 0, canvas.height / 2);
+                        goalGradient.addColorStop(0, '#FFD700');
+                        goalGradient.addColorStop(1, '#FFA500');
+                        ctx.fillStyle = goalGradient;
+                        ctx.fillText(lines[0], canvas.width / 2, canvas.height / 2 - 60);
+                    }
+                    
+                    // Υπόλοιπες γραμμές
+                    for (let i = 1; i < lines.length; i++) {
+                        const yOffset = 60 + ((i - 1) * 55);
+                        ctx.font = i === 1 ? 'bold 48px Arial' : 'bold 38px Arial';
+                        ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+                        ctx.lineWidth = 5;
+                        ctx.strokeText(lines[i], canvas.width / 2, canvas.height / 2 + yOffset);
+                        ctx.fillStyle = isFoul ? '#FFB0B0' : '#FFFFFF';
+                        ctx.fillText(lines[i], canvas.width / 2, canvas.height / 2 + yOffset);
+                    }
+                    
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'alphabetic';
+                }
+            }
+
+            loop() {
+                this.update();
+                this.draw();
+                requestAnimationFrame(() => this.loop());
+            }
+        }
+
+        // roundRect polyfill
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+                this.beginPath();
+                this.moveTo(x + r, y);
+                this.lineTo(x + w - r, y);
+                this.quadraticCurveTo(x + w, y, x + w, y + r);
+                this.lineTo(x + w, y + h - r);
+                this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+                this.lineTo(x + r, y + h);
+                this.quadraticCurveTo(x, y + h, x, y + h - r);
+                this.lineTo(x, y + r);
+                this.quadraticCurveTo(x, y, x + r, y);
+                this.closePath();
+                return this;
+            };
+        }
+
+        // Συνάρτηση που ξεκινάει το παιχνίδι
+        function startGame() {
+            console.log('Starting game...');
+            const game = new Game();
+            game.loop();
+        }
+        
+        // ΔΕΝ ξεκινάμε απευθείας - Περιμένουμε τις εικόνες!
+    </script>
 </body>
 </html>
