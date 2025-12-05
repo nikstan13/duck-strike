@@ -749,13 +749,19 @@
         images.duckRed.onload = () => {
             imagesLoaded++;
             console.log('Duck Red loaded!');
-            if (imagesLoaded === totalImages) startGame();
+            // Εικόνες φορτωμένες - εμφάνισε το menu (ΔΕΝ ξεκινάμε auto!)
+            if (imagesLoaded === totalImages) {
+                console.log('All images loaded! Menu ready.');
+            }
         };
         
         images.duckBlue.onload = () => {
             imagesLoaded++;
             console.log('Duck Blue loaded!');
-            if (imagesLoaded === totalImages) startGame();
+            // Εικόνες φορτωμένες - εμφάνισε το menu (ΔΕΝ ξεκινάμε auto!)
+            if (imagesLoaded === totalImages) {
+                console.log('All images loaded! Menu ready.');
+            }
         };
         
         images.duckRed.onerror = () => {
