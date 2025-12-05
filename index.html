@@ -87,6 +87,67 @@
             transform: scale(0.95);
         }
 
+        /* Fullscreen instruction popup */
+        #fullscreenTip {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            border: 3px solid white;
+            z-index: 10001;
+            max-width: 90%;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        #fullscreenTip.show {
+            display: block;
+            animation: popupFade 0.3s ease;
+        }
+
+        @keyframes popupFade {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        #fullscreenTip h3 {
+            margin: 0 0 15px 0;
+            font-size: 24px;
+            color: #FFD700;
+        }
+
+        #fullscreenTip p {
+            margin: 10px 0;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        #fullscreenTip .emoji {
+            font-size: 40px;
+            margin: 10px 0;
+        }
+
+        #fullscreenTip button {
+            margin-top: 20px;
+            padding: 12px 30px;
+            background: #FFD700;
+            color: black;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        #fullscreenTip button:active {
+            transform: scale(0.95);
+        }
+
         /* Hide button on desktop */
         @media (min-width: 1024px) {
             #fullscreenBtn {
@@ -191,6 +252,22 @@
 <body>
     <button id="fullscreenBtn">⛶ Fullscreen</button>
     
+    <!-- Fullscreen instruction popup -->
+    <div id="fullscreenTip">
+        <div class="emoji">📱</div>
+        <h3>Πραγματικό Fullscreen</h3>
+        <p><strong>Για iOS (Safari):</strong></p>
+        <p>1. Πάτα το κουμπί <strong>Share</strong> (κάτω στη μέση)</p>
+        <p>2. Διάλεξε <strong>"Add to Home Screen"</strong></p>
+        <p>3. Άνοιξε το app από την οθόνη αρχικής!</p>
+        <br>
+        <p><strong>Για Android (Chrome):</strong></p>
+        <p>Πάτα το μενού <strong>⋮</strong> και διάλεξε <strong>"Add to Home screen"</strong></p>
+        <br>
+        <p style="color: #FFD700;">✨ Έτσι θα παίξεις χωρίς tabs και address bar!</p>
+        <button onclick="closeTip()">OK, Κατάλαβα!</button>
+    </div>
+    
     <div class="controls">
         <h3>🎮 Οδηγίες</h3>
         <p>🖱️ Κλικ σε κόκκινο παίκτη</p>
@@ -210,7 +287,15 @@
 
         // Fullscreen functionality - CSS-based (works on ALL devices including iOS)
         const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const fullscreenTip = document.getElementById('fullscreenTip');
         let isFullscreenMode = false;
+        let tipShown = false; // Show tip only once
+        
+        // Close tip function
+        window.closeTip = function() {
+            fullscreenTip.classList.remove('show');
+            tipShown = true;
+        };
         
         function toggleFullscreen() {
             if (!isFullscreenMode) {
@@ -226,14 +311,30 @@
                         isFullscreenMode = true;
                         fullscreenBtn.textContent = '✕ Exit';
                     }).catch(() => {
-                        // Fallback to CSS method
+                        // Fallback to CSS method and show tip
                         enableCSSFullscreen();
+                        showFullscreenTip();
                     });
                 } else if (elem.webkitRequestFullscreen) {
-                    elem.webkitRequestFullscreen();
-                    fullscreenSuccess = true;
-                    isFullscreenMode = true;
-                    fullscreenBtn.textContent = '✕ Exit';
+                    // Test if it actually works (iOS Safari often has webkitRequestFullscreen but it doesn't work)
+                    try {
+                        elem.webkitRequestFullscreen();
+                        // Check after a delay if it actually went fullscreen
+                        setTimeout(() => {
+                            if (!document.webkitFullscreenElement) {
+                                // Didn't work, show tip
+                                enableCSSFullscreen();
+                                showFullscreenTip();
+                            } else {
+                                fullscreenSuccess = true;
+                                isFullscreenMode = true;
+                                fullscreenBtn.textContent = '✕ Exit';
+                            }
+                        }, 100);
+                    } catch(e) {
+                        enableCSSFullscreen();
+                        showFullscreenTip();
+                    }
                 } else if (elem.mozRequestFullScreen) {
                     elem.mozRequestFullScreen();
                     fullscreenSuccess = true;
@@ -242,11 +343,13 @@
                 } else {
                     // Fallback to CSS method for unsupported browsers (iOS Safari)
                     enableCSSFullscreen();
+                    showFullscreenTip();
                 }
                 
                 // If API not supported, use CSS method
                 if (!fullscreenSuccess && !elem.requestFullscreen && !elem.webkitRequestFullscreen) {
                     enableCSSFullscreen();
+                    showFullscreenTip();
                 }
                 
             } else {
@@ -263,6 +366,13 @@
                 
                 // Always disable CSS fullscreen
                 disableCSSFullscreen();
+            }
+        }
+        
+        // Show fullscreen tip (only once)
+        function showFullscreenTip() {
+            if (!tipShown) {
+                fullscreenTip.classList.add('show');
             }
         }
         
