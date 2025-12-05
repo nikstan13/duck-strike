@@ -1896,16 +1896,16 @@
                 // Power βάσει strategy και απόστασης
                 let basePower;
                 if (strategy === 'aggressive') {
-                    basePower = 35 + Math.random() * 15; // 35-50
+                    basePower = 20 + Math.random() * 8; // 20-28
                 } else if (strategy === 'defensive') {
-                    basePower = 20 + Math.random() * 15; // 20-35
+                    basePower = 12 + Math.random() * 8; // 12-20
                 } else {
-                    basePower = 25 + Math.random() * 15; // 25-40
+                    basePower = 15 + Math.random() * 8; // 15-23
                 }
                 
                 // Προσαρμογή power βάσει απόστασης
                 if (distToBall > 400) {
-                    basePower *= 1.2; // Πιο δυνατά για μακρινά shots
+                    basePower *= 1.15; // Ελαφρά αύξηση για μακρινά shots (από 1.2)
                 }
                 
                 // 2.2d: Επιστροφή κατεύθυνσης
