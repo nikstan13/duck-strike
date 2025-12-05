@@ -1,0 +1,24 @@
+{
+  "name": "Duck Strike - Soccer Pool",
+  "short_name": "Duck Strike",
+  "description": "Παίξε soccer pool με παπάκια!",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#ffa797",
+  "theme_color": "#ffa797",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
