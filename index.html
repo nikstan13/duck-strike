@@ -921,6 +921,13 @@
                         this.vy = 0;  // ΠΛΗΡΗΣ ΣΤΑΣΗ και κατακόρυφα
                     }
                     
+                    // 🚨 EXTREME SAFETY: Αν η μπάλα πάει πίσω από το backLine (edge case)
+                    if (this.x < backLine) {
+                        this.x = backLine + this.radius;
+                        this.vx = 0;
+                        this.vy = 0;
+                    }
+                    
                     // Όρια πάνω-κάτω μέσα στο τέρμα - ΣΚΛΗΡΑ ΟΡΙΑ
                     if (this.y - this.radius <= goalTop) {
                         this.y = goalTop + this.radius;
@@ -965,6 +972,13 @@
                         this.vy = 0;  // ΠΛΗΡΗΣ ΣΤΑΣΗ και κατακόρυφα
                     }
                     
+                    // 🚨 EXTREME SAFETY: Αν η μπάλα πάει πίσω από το backLine (edge case)
+                    if (this.x > backLine) {
+                        this.x = backLine - this.radius;
+                        this.vx = 0;
+                        this.vy = 0;
+                    }
+                    
                     // Όρια πάνω-κάτω μέσα στο τέρμα - ΣΚΛΗΡΑ ΟΡΙΑ
                     if (this.y - this.radius <= goalTop) {
                         this.y = goalTop + this.radius;
@@ -984,6 +998,14 @@
                         this.x = canvas.width - sideMargin - this.radius;
                         this.vx *= -0.6;
                     }
+                }
+                
+                // 🚨 EMERGENCY SAFETY CHECK - Αν η μπάλα φύγει εκτός canvas!
+                const safetyMargin = 10;
+                if (this.x < -safetyMargin || this.x > canvas.width + safetyMargin ||
+                    this.y < -safetyMargin || this.y > canvas.height + safetyMargin) {
+                    console.error('⚠️ Ball escaped! Resetting to center.');
+                    this.reset();
                 }
             }
 
