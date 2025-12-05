@@ -15,6 +15,10 @@
     <!-- Apple Touch Icons -->
     <link rel="apple-touch-icon" href="./icon-192.png">
     
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    
     <title>Duck Strike - Soccer Pool</title>
     <style>
         * {
@@ -115,6 +119,136 @@
             line-height: 1;
         }
 
+        /* Multiplayer Menu */
+        #menuScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        #menuScreen.hidden {
+            display: none;
+        }
+
+        .menu-title {
+            font-size: 48px;
+            color: white;
+            margin-bottom: 20px;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+        }
+
+        .menu-subtitle {
+            font-size: 18px;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 40px;
+        }
+
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 300px;
+        }
+
+        .menu-btn {
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .menu-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .btn-local {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-random {
+            background: #FF9800;
+            color: white;
+        }
+
+        .btn-private {
+            background: #2196F3;
+            color: white;
+        }
+
+        .btn-back {
+            background: #f44336;
+            color: white;
+            margin-top: 20px;
+        }
+
+        /* Room Code Input */
+        .room-input-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .room-input-container.show {
+            display: flex;
+        }
+
+        #roomCodeInput {
+            padding: 15px;
+            font-size: 24px;
+            text-align: center;
+            border: 3px solid white;
+            border-radius: 10px;
+            width: 250px;
+            letter-spacing: 5px;
+            font-weight: bold;
+        }
+
+        .waiting-text {
+            color: white;
+            font-size: 20px;
+            margin-top: 20px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .room-code-display {
+            background: rgba(255,255,255,0.2);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .room-code-display h3 {
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .room-code {
+            font-size: 36px;
+            color: #FFD700;
+            letter-spacing: 10px;
+            font-weight: bold;
+        }
+
         @media (min-width: 1024px) {
             #installBanner {
                 display: none !important;
@@ -179,6 +313,59 @@
     </style>
 </head>
 <body>
+    <!-- Multiplayer Menu -->
+    <div id="menuScreen">
+        <h1 class="menu-title">🦆 Duck Strike</h1>
+        <p class="menu-subtitle">Διάλεξε τρόπο παιχνιδιού</p>
+        
+        <div class="menu-buttons" id="mainMenu">
+            <button class="menu-btn btn-local" onclick="startLocalGame()">
+                🎮 Παίξε με Bot
+            </button>
+            <button class="menu-btn btn-random" onclick="findRandomMatch()">
+                🌍 Τυχαίος Αντίπαλος
+            </button>
+            <button class="menu-btn btn-private" onclick="showPrivateRoomMenu()">
+                🔐 Ιδιωτικό Δωμάτιο
+            </button>
+        </div>
+
+        <!-- Private Room Menu -->
+        <div class="room-input-container" id="privateRoomMenu">
+            <button class="menu-btn btn-private" onclick="createPrivateRoom()">
+                ➕ Δημιούργησε Δωμάτιο
+            </button>
+            <p style="color: white; margin: 10px 0;">ή</p>
+            <input type="text" id="roomCodeInput" placeholder="ΕΙΣΑΓΕ ΚΩΔΙΚΟ" maxlength="6">
+            <button class="menu-btn btn-private" onclick="joinPrivateRoom()">
+                🚪 Μπες σε Δωμάτιο
+            </button>
+            <button class="menu-btn btn-back" onclick="backToMainMenu()">
+                ← Πίσω
+            </button>
+        </div>
+
+        <!-- Waiting Screen -->
+        <div class="room-input-container" id="waitingScreen">
+            <div class="room-code-display">
+                <h3>Ο κωδικός σου:</h3>
+                <div class="room-code" id="displayRoomCode"></div>
+            </div>
+            <p class="waiting-text">⏳ Περιμένοντας παίκτη...</p>
+            <button class="menu-btn btn-back" onclick="cancelWaiting()">
+                ❌ Ακύρωση
+            </button>
+        </div>
+
+        <!-- Random Match Waiting -->
+        <div class="room-input-container" id="randomWaiting">
+            <p class="waiting-text">🔍 Αναζήτηση αντιπάλου...</p>
+            <button class="menu-btn btn-back" onclick="cancelWaiting()">
+                ❌ Ακύρωση
+            </button>
+        </div>
+    </div>
+
     <!-- Install Banner για fullscreen experience -->
     <div id="installBanner">
         <button class="close-btn" onclick="closeBanner()">✕</button>
@@ -208,6 +395,209 @@
         
         console.log('Canvas:', canvas);
         console.log('Canvas size:', canvas.width, 'x', canvas.height);
+
+        // ========================
+        // FIREBASE CONFIGURATION
+        // ========================
+        const firebaseConfig = {
+            apiKey: "AIzaSyDw2uJNpS_XJlFOFL6Pp6vKYoipCLPmTDA",
+            authDomain: "duck-surfers.firebaseapp.com",
+            databaseURL: "https://duck-surfers-default-rtdb.europe-west1.firebasedatabase.app", // Θα το πάρεις μετά το Realtime DB setup
+            projectId: "duck-surfers",
+            storageBucket: "duck-surfers.firebasestorage.app",
+            messagingSenderId: "209490981991",
+            appId: "1:209490981991:web:9a8ad41ddc010870ff90c2"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // ========================
+        // MULTIPLAYER STATE
+        // ========================
+        let isMultiplayer = false;
+        let isHost = false;
+        let currentRoomId = null;
+        let playerId = 'player_' + Math.random().toString(36).substr(2, 9);
+
+        // ========================
+        // MENU FUNCTIONS
+        // ========================
+        function startLocalGame() {
+            isMultiplayer = false;
+            document.getElementById('menuScreen').classList.add('hidden');
+            startGame();
+        }
+
+        function showPrivateRoomMenu() {
+            document.getElementById('mainMenu').style.display = 'none';
+            document.getElementById('privateRoomMenu').classList.add('show');
+        }
+
+        function backToMainMenu() {
+            document.getElementById('mainMenu').style.display = 'flex';
+            document.getElementById('privateRoomMenu').classList.remove('show');
+            document.getElementById('waitingScreen').classList.remove('show');
+            document.getElementById('randomWaiting').classList.remove('show');
+        }
+
+        function createPrivateRoom() {
+            const roomCode = generateRoomCode();
+            currentRoomId = 'private_' + roomCode;
+            isHost = true;
+            isMultiplayer = true;
+
+            // Create room in Firebase
+            database.ref('rooms/' + currentRoomId).set({
+                host: playerId,
+                guest: null,
+                status: 'waiting',
+                gameState: null,
+                createdAt: Date.now()
+            });
+
+            // Show waiting screen
+            document.getElementById('privateRoomMenu').classList.remove('show');
+            document.getElementById('waitingScreen').classList.add('show');
+            document.getElementById('displayRoomCode').textContent = roomCode;
+
+            // Listen for guest joining
+            database.ref('rooms/' + currentRoomId + '/guest').on('value', (snapshot) => {
+                if (snapshot.val()) {
+                    startMultiplayerGame();
+                }
+            });
+        }
+
+        function joinPrivateRoom() {
+            const roomCode = document.getElementById('roomCodeInput').value.toUpperCase();
+            if (roomCode.length !== 6) {
+                alert('Εισάγαγε έγκυρο κωδικό 6 χαρακτήρων!');
+                return;
+            }
+
+            currentRoomId = 'private_' + roomCode;
+            isHost = false;
+            isMultiplayer = true;
+
+            // Check if room exists
+            database.ref('rooms/' + currentRoomId).once('value').then((snapshot) => {
+                if (snapshot.exists() && snapshot.val().status === 'waiting') {
+                    // Join room
+                    database.ref('rooms/' + currentRoomId + '/guest').set(playerId);
+                    database.ref('rooms/' + currentRoomId + '/status').set('playing');
+                    startMultiplayerGame();
+                } else {
+                    alert('Το δωμάτιο δεν βρέθηκε ή είναι γεμάτο!');
+                }
+            });
+        }
+
+        function findRandomMatch() {
+            isMultiplayer = true;
+            document.getElementById('mainMenu').style.display = 'none';
+            document.getElementById('randomWaiting').classList.add('show');
+
+            // Look for available room or create one
+            database.ref('rooms').orderByChild('status').equalTo('waiting').limitToFirst(1).once('value').then((snapshot) => {
+                if (snapshot.exists()) {
+                    // Join existing room
+                    const roomId = Object.keys(snapshot.val())[0];
+                    if (!roomId.startsWith('private_')) {
+                        currentRoomId = roomId;
+                        isHost = false;
+                        database.ref('rooms/' + currentRoomId + '/guest').set(playerId);
+                        database.ref('rooms/' + currentRoomId + '/status').set('playing');
+                        startMultiplayerGame();
+                    } else {
+                        createRandomRoom();
+                    }
+                } else {
+                    // Create new room
+                    createRandomRoom();
+                }
+            });
+        }
+
+        function createRandomRoom() {
+            currentRoomId = 'random_' + Math.random().toString(36).substr(2, 9);
+            isHost = true;
+
+            database.ref('rooms/' + currentRoomId).set({
+                host: playerId,
+                guest: null,
+                status: 'waiting',
+                gameState: null,
+                createdAt: Date.now()
+            });
+
+            // Listen for guest joining
+            database.ref('rooms/' + currentRoomId + '/guest').on('value', (snapshot) => {
+                if (snapshot.val()) {
+                    startMultiplayerGame();
+                }
+            });
+        }
+
+        function cancelWaiting() {
+            if (currentRoomId) {
+                database.ref('rooms/' + currentRoomId).remove();
+            }
+            backToMainMenu();
+        }
+
+        function generateRoomCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let code = '';
+            for (let i = 0; i < 6; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+
+        function startMultiplayerGame() {
+            document.getElementById('menuScreen').classList.add('hidden');
+            startGame();
+            setupMultiplayerSync();
+        }
+
+        function setupMultiplayerSync() {
+            // Sync game state in real-time
+            if (isHost) {
+                // Host sends game state
+                setInterval(() => {
+                    if (game) {
+                        const gameState = {
+                            ball: { x: game.ball.x, y: game.ball.y, vx: game.ball.vx, vy: game.ball.vy },
+                            players: game.players.map(p => ({ x: p.x, y: p.y, vx: p.vx, vy: p.vy })),
+                            score: game.score
+                        };
+                        database.ref('rooms/' + currentRoomId + '/gameState').set(gameState);
+                    }
+                }, 50); // 20 updates per second
+            } else {
+                // Guest receives game state
+                database.ref('rooms/' + currentRoomId + '/gameState').on('value', (snapshot) => {
+                    const state = snapshot.val();
+                    if (state && game) {
+                        game.ball.x = state.ball.x;
+                        game.ball.y = state.ball.y;
+                        game.ball.vx = state.ball.vx;
+                        game.ball.vy = state.ball.vy;
+                        state.players.forEach((p, i) => {
+                            if (game.players[i]) {
+                                game.players[i].x = p.x;
+                                game.players[i].y = p.y;
+                                game.players[i].vx = p.vx;
+                                game.players[i].vy = p.vy;
+                            }
+                        });
+                        game.score = state.score;
+                    }
+                });
+            }
+        }
 
         // Register Service Worker για PWA
         if ('serviceWorker' in navigator) {
@@ -1870,9 +2260,12 @@
         }
 
         // Συνάρτηση που ξεκινάει το παιχνίδι
+        // Global game variable for multiplayer sync
+        let game = null;
+
         function startGame() {
             console.log('Starting game...');
-            const game = new Game();
+            game = new Game();
             game.loop();
         }
         
