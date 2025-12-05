@@ -409,9 +409,20 @@
             appId: "1:585501371332:web:039f2305aa915f089c1291"
         };
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+        // Initialize Firebase (with error handling)
+        let database = null;
+        try {
+            if (typeof firebase !== 'undefined') {
+                firebase.initializeApp(firebaseConfig);
+                database = firebase.database();
+                console.log('Firebase initialized successfully!');
+            } else {
+                console.warn('Firebase SDK not loaded - Multiplayer disabled');
+            }
+        } catch (error) {
+            console.error('Firebase initialization failed:', error);
+            console.warn('Multiplayer features will be disabled');
+        }
 
         // ========================
         // MULTIPLAYER STATE
@@ -443,6 +454,11 @@
         }
 
         function createPrivateRoom() {
+            if (!database) {
+                alert('Firebase δεν είναι διαθέσιμο! Δοκίμασε "Παίξε με Bot"');
+                return;
+            }
+            
             const roomCode = generateRoomCode();
             currentRoomId = 'private_' + roomCode;
             isHost = true;
@@ -471,6 +487,11 @@
         }
 
         function joinPrivateRoom() {
+            if (!database) {
+                alert('Firebase δεν είναι διαθέσιμο! Δοκίμασε "Παίξε με Bot"');
+                return;
+            }
+            
             const roomCode = document.getElementById('roomCodeInput').value.toUpperCase();
             if (roomCode.length !== 6) {
                 alert('Εισάγαγε έγκυρο κωδικό 6 χαρακτήρων!');
@@ -495,6 +516,11 @@
         }
 
         function findRandomMatch() {
+            if (!database) {
+                alert('Firebase δεν είναι διαθέσιμο! Δοκίμασε "Παίξε με Bot"');
+                return;
+            }
+            
             isMultiplayer = true;
             document.getElementById('mainMenu').style.display = 'none';
             document.getElementById('randomWaiting').classList.add('show');
