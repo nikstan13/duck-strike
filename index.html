@@ -570,8 +570,11 @@
                     if (game) {
                         const gameState = {
                             ball: { x: game.ball.x, y: game.ball.y, vx: game.ball.vx, vy: game.ball.vy },
-                            players: game.players.map(p => ({ x: p.x, y: p.y, vx: p.vx, vy: p.vy })),
-                            score: game.score
+                            playerTeam: game.playerTeam.map(p => ({ x: p.x, y: p.y, vx: p.vx, vy: p.vy })),
+                            botTeam: game.botTeam.map(p => ({ x: p.x, y: p.y, vx: p.vx, vy: p.vy })),
+                            score: { player: game.playerScore, bot: game.botScore },
+                            currentTurn: game.currentTurn,
+                            turnComplete: game.turnComplete
                         };
                         database.ref('rooms/' + currentRoomId + '/gameState').set(gameState);
                     }
@@ -581,22 +584,53 @@
                 database.ref('rooms/' + currentRoomId + '/gameState').on('value', (snapshot) => {
                     const state = snapshot.val();
                     if (state && game) {
+                        // Sync ball
                         game.ball.x = state.ball.x;
                         game.ball.y = state.ball.y;
                         game.ball.vx = state.ball.vx;
                         game.ball.vy = state.ball.vy;
-                        state.players.forEach((p, i) => {
-                            if (game.players[i]) {
-                                game.players[i].x = p.x;
-                                game.players[i].y = p.y;
-                                game.players[i].vx = p.vx;
-                                game.players[i].vy = p.vy;
+                        
+                        // Sync players
+                        state.playerTeam.forEach((p, i) => {
+                            if (game.playerTeam[i]) {
+                                game.playerTeam[i].x = p.x;
+                                game.playerTeam[i].y = p.y;
+                                game.playerTeam[i].vx = p.vx;
+                                game.playerTeam[i].vy = p.vy;
                             }
                         });
-                        game.score = state.score;
+                        
+                        state.botTeam.forEach((p, i) => {
+                            if (game.botTeam[i]) {
+                                game.botTeam[i].x = p.x;
+                                game.botTeam[i].y = p.y;
+                                game.botTeam[i].vx = p.vx;
+                                game.botTeam[i].vy = p.vy;
+                            }
+                        });
+                        
+                        // Sync score & turn
+                        game.playerScore = state.score.player;
+                        game.botScore = state.score.bot;
+                        game.currentTurn = state.currentTurn;
+                        game.turnComplete = state.turnComplete;
                     }
                 });
             }
+            
+            // Both players listen for opponent's shots
+            database.ref('rooms/' + currentRoomId + '/lastShot').on('value', (snapshot) => {
+                const shot = snapshot.val();
+                if (shot && game && shot.team !== game.myTeam) {
+                    // Opponent shot - apply it
+                    const team = shot.team === 'player' ? game.playerTeam : game.botTeam;
+                    const player = team[shot.playerIndex];
+                    if (player && game.turnComplete) {
+                        player.shoot(shot.dragX, shot.dragY);
+                        game.turnComplete = false;
+                    }
+                }
+            });
         }
 
         // Register Service Worker για PWA
@@ -1260,6 +1294,10 @@
         // Παιχνίδι
         class Game {
             constructor() {
+                this.isMultiplayer = isMultiplayer;
+                this.isHost = isHost;
+                this.myTeam = this.isHost ? 'player' : 'bot';  // Host = κόκκινα, Guest = μπλε
+                
                 this.ball = new Ball();
                 this.playerScore = 0;
                 this.botScore = 0;
@@ -1337,14 +1375,23 @@
             }
 
             onMouseDown(e) {
-                // Έλεγχος αν είναι σειρά του παίκτη
-                if (this.currentTurn !== 'player') return;
+                // Στο multiplayer, έλεγχος αν είναι η δική σου ομάδα
+                if (this.isMultiplayer) {
+                    if (this.currentTurn !== this.myTeam) return;
+                } else {
+                    // Local game - μόνο player
+                    if (this.currentTurn !== 'player') return;
+                }
+                
                 if (!this.turnComplete) return;
 
                 const pos = this.getMousePos(e);
                 console.log('Mouse down at:', pos.x, pos.y);
 
-                for (let player of this.playerTeam) {
+                // Διάλεξε από την ομάδα σου
+                const team = (this.isMultiplayer && this.myTeam === 'bot') ? this.botTeam : this.playerTeam;
+                
+                for (let player of team) {
                     if (player.isClicked(pos.x, pos.y)) {
                         this.selectedPlayer = player;
                         player.selected = true;
@@ -1394,6 +1441,20 @@
                     
                     // Εκτόξευση με slingshot mechanics
                     this.selectedPlayer.shoot(dragX, dragY);
+                    
+                    // Στείλε το shot στο Firebase αν είναι multiplayer
+                    if (this.isMultiplayer && currentRoomId) {
+                        const playerIndex = (this.myTeam === 'player' ? this.playerTeam : this.botTeam)
+                            .indexOf(this.selectedPlayer);
+                        
+                        database.ref('rooms/' + currentRoomId + '/lastShot').set({
+                            team: this.myTeam,
+                            playerIndex: playerIndex,
+                            dragX: dragX,
+                            dragY: dragY,
+                            timestamp: Date.now()
+                        });
+                    }
                     
                     // Ξεκινάει η σειρά
                     this.turnComplete = false;
@@ -1695,6 +1756,9 @@
             }
 
             botMove() {
+                // Στο multiplayer mode, το bot AI απενεργοποιείται
+                if (this.isMultiplayer) return;
+                
                 // ✅ Phase 1.1: Bot παίζει μόνο όταν είναι η σειρά του
                 if (this.currentTurn !== 'bot') return;
                 if (!this.turnComplete) return;
