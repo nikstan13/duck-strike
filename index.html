@@ -36,7 +36,7 @@
             align-items: center;
             min-height: 100vh;
             min-height: 100svh; /* Small viewport height - excludes browser UI */
-            background: #ffa797;
+            background: #000000; /* Μαύρο background */
             font-family: Arial, sans-serif;
             overflow: hidden;
             margin: 0;
@@ -57,8 +57,34 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: #ffa797;
+            background: #000000; /* Μαύρο background */
             z-index: -1;
+        }
+        
+        /* Floating ducks animation */
+        .floating-duck {
+            position: fixed;
+            width: 60px;
+            height: 60px;
+            pointer-events: none;
+            opacity: 0.15;
+            z-index: 0;
+            animation: float 20s infinite ease-in-out;
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px) rotate(0deg);
+            }
+            25% {
+                transform: translateY(-30px) rotate(90deg);
+            }
+            50% {
+                transform: translateY(0px) rotate(180deg);
+            }
+            75% {
+                transform: translateY(30px) rotate(270deg);
+            }
         }
         
         /* Κρύψε μόνο τα .controls (οδηγίες) */
@@ -319,6 +345,9 @@
     </style>
 </head>
 <body>
+    <!-- Floating Ducks Background -->
+    <div id="floatingDucks"></div>
+    
     <!-- Multiplayer Menu -->
     <div id="menuScreen">
         <h1 class="menu-title">🦆 Duck Strike</h1>
@@ -1801,13 +1830,13 @@
                     const scoreboardX = 10;
                     const scoreboardY = canvas.height / 2 - scoreboardHeight / 2;
                     
-                    // Κύριο background
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+                    // Κύριο background - Άσπρο
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
                     ctx.roundRect(scoreboardX, scoreboardY, scoreboardWidth, scoreboardHeight, 15);
                     ctx.fill();
                     
                     // Outline
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
                     ctx.lineWidth = 2;
                     ctx.roundRect(scoreboardX, scoreboardY, scoreboardWidth, scoreboardHeight, 15);
                     ctx.stroke();
@@ -1819,7 +1848,7 @@
                     ctx.fillText(this.playerScore, scoreboardX + scoreboardWidth / 2, scoreboardY + 60);
                     
                     // Divider
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
                     ctx.font = 'bold 30px Arial';
                     ctx.fillText(':', scoreboardX + scoreboardWidth / 2, scoreboardY + scoreboardHeight / 2 + 10);
                     
@@ -1837,13 +1866,13 @@
                     const scoreboardX = canvas.width / 2 - scoreboardWidth / 2;
                     const scoreboardY = 20;
                     
-                    // Κύριο background με ημιδιάφανο μαύρο
-                    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+                    // Κύριο background - Άσπρο
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
                     ctx.roundRect(scoreboardX, scoreboardY, scoreboardWidth, scoreboardHeight, 15);
                     ctx.fill();
                     
-                    // Λευκό outline
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                    // Μαύρο outline
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
                     ctx.lineWidth = 2;
                     ctx.roundRect(scoreboardX, scoreboardY, scoreboardWidth, scoreboardHeight, 15);
                     ctx.stroke();
@@ -1859,7 +1888,7 @@
                     ctx.fillText(this.playerScore, leftSectionX + 50, leftSectionY + 40);
                     
                     // Divider στη μέση
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
                     ctx.font = 'bold 40px Arial';
                     ctx.fillText(':', canvas.width / 2, leftSectionY + 38);
                     
@@ -2497,6 +2526,36 @@
             game = new Game();
             game.loop();
         }
+        
+        // 🦆 Create floating ducks in background
+        function createFloatingDucks() {
+            const container = document.getElementById('floatingDucks');
+            const duckCount = 15; // Αριθμός παπιών
+            
+            for (let i = 0; i < duckCount; i++) {
+                const duck = document.createElement('img');
+                duck.src = './Assets/duck.png';
+                duck.className = 'floating-duck';
+                
+                // Τυχαία θέση
+                duck.style.left = Math.random() * 100 + '%';
+                duck.style.top = Math.random() * 100 + '%';
+                
+                // Τυχαία rotation
+                duck.style.transform = `rotate(${Math.random() * 360}deg)`;
+                
+                // Τυχαία διάρκεια animation
+                duck.style.animationDuration = (15 + Math.random() * 15) + 's';
+                
+                // Τυχαία καθυστέρηση
+                duck.style.animationDelay = (Math.random() * 5) + 's';
+                
+                container.appendChild(duck);
+            }
+        }
+        
+        // Create ducks when page loads
+        createFloatingDucks();
         
         // ΔΕΝ ξεκινάμε απευθείας - Περιμένουμε τις εικόνες!
     </script>
