@@ -1482,13 +1482,42 @@
                     
                     console.log('Drag values:', dragX, dragY, 'Distance:', Math.sqrt(dragX*dragX + dragY*dragY));
                     
-                    // Έλεγχος για πολύ μικρό drag (tap χωρίς drag ή cancel)
+                    // 🔄 ΚΑΛΥΤΕΡΟΣ ΤΡΟΠΟΣ ΑΚΥΡΩΣΗΣ: Έλεγχος αν ο κέρσορας/δάχτυλο είναι πάνω στον παίκτη
+                    const distanceFromPlayer = Math.sqrt(
+                        (pos.x - this.selectedPlayer.x) ** 2 + 
+                        (pos.y - this.selectedPlayer.y) ** 2
+                    );
+                    const playerRadius = this.selectedPlayer.radius;
+                    
+                    // Αν ο κέρσορας είναι μέσα στον κύκλο του παίκτη → ΑΚΥΡΩΣΗ!
+                    if (distanceFromPlayer <= playerRadius * 1.5) { // 1.5x για πιο εύκολο cancel
+                        console.log('❌ Shot CANCELLED! Cursor returned to player. Distance:', distanceFromPlayer.toFixed(1), '≤', (playerRadius * 1.5).toFixed(1));
+                        
+                        // Visual feedback: Flash effect before deselect
+                        const deselectedPlayer = this.selectedPlayer;
+                        deselectedPlayer.selected = false;
+                        
+                        // Brief red flash to show cancellation
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.arc(deselectedPlayer.x, deselectedPlayer.y, deselectedPlayer.radius + 12, 0, Math.PI * 2);
+                        ctx.strokeStyle = '#FF0000';  // Red για cancel
+                        ctx.lineWidth = 6;
+                        ctx.stroke();
+                        ctx.restore();
+                        
+                        this.selectedPlayer = null;
+                        this.dragStart = null;
+                        this.currentDrag = null;
+                        return; // Return χωρίς shoot - μπορείς να κάνεις άλλο click!
+                    }
+                    
+                    // Δευτερεύων έλεγχος: Πολύ μικρό drag (fallback)
                     const dragDistance = Math.sqrt(dragX * dragX + dragY * dragY);
-                    const cancelThreshold = 20; // 20 pixels = cancel (πολύ εύκολο να ακυρώσεις!)
+                    const cancelThreshold = 20;
                     
                     if (dragDistance < cancelThreshold) {
-                        // 🔄 Πολύ μικρό drag - ΑΚΥΡΩΣΗ και μπορείς να διαλέξεις άλλο παίκτη!
-                        console.log('❌ Shot CANCELLED! Distance:', dragDistance, '< threshold:', cancelThreshold);
+                        console.log('❌ Shot CANCELLED! Minimal drag:', dragDistance, '< threshold:', cancelThreshold);
                         
                         // Visual feedback: Flash effect before deselect
                         const deselectedPlayer = this.selectedPlayer;
