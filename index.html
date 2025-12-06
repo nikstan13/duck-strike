@@ -266,6 +266,8 @@
             border: none;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             cursor: pointer;
+            transform: scale(0.85); /* Zoom out για περισσότερο χώρο drag */
+            transform-origin: center;
         }
 
         /* Responsive canvas */
@@ -273,6 +275,7 @@
             #gameCanvas {
                 width: 100vw;
                 height: auto;
+                transform: scale(0.85); /* Zoom out και σε μικρές οθόνες */
             }
         }
 
@@ -283,6 +286,7 @@
             #gameCanvas {
                 width: 100vw;
                 height: auto;
+                transform: scale(0.8); /* Ακόμα πιο μικρό σε portrait για touch */
             }
         }
 
