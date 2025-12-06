@@ -1380,6 +1380,135 @@
         }
 
         // Παιχνίδι
+        // ====================================
+        // CROWD SYSTEM - Animated Spectators
+        // ====================================
+        class CrowdSystem {
+            constructor(fieldMargins) {
+                this.spectators = [];
+                this.time = 0;
+                this.fieldMargins = fieldMargins; // { sideMargin, topMargin, bottomMargin, borderWidth }
+                
+                // Configuration
+                this.spectatorRadius = 8;
+                this.spectatorSpacing = 20;
+                this.waveAmplitude = 3;
+                this.waveSpeed = 0.002; // Slow wave for subtle effect
+                
+                // Colors for variety
+                this.spectatorColors = [
+                    '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', 
+                    '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2'
+                ];
+                
+                this.initializeSpectators();
+            }
+            
+            initializeSpectators() {
+                const { sideMargin, topMargin, bottomMargin, borderWidth } = this.fieldMargins;
+                const fieldWidth = canvas.width - (sideMargin * 2);
+                const fieldHeight = canvas.height - topMargin - bottomMargin;
+                
+                // Define crowd zones (outside the field border)
+                const crowdDepth = 40; // How far back the crowd extends
+                const standOffset = borderWidth + 10; // Offset from field border
+                
+                // Top stand
+                this.createStandRow(
+                    sideMargin - standOffset, 
+                    topMargin - standOffset - crowdDepth,
+                    fieldWidth + (standOffset * 2),
+                    'horizontal'
+                );
+                
+                // Bottom stand
+                this.createStandRow(
+                    sideMargin - standOffset,
+                    canvas.height - bottomMargin + standOffset,
+                    fieldWidth + (standOffset * 2),
+                    'horizontal'
+                );
+                
+                // Left stand
+                this.createStandRow(
+                    sideMargin - standOffset - crowdDepth,
+                    topMargin - standOffset,
+                    fieldHeight + (standOffset * 2),
+                    'vertical'
+                );
+                
+                // Right stand
+                this.createStandRow(
+                    canvas.width - sideMargin + standOffset,
+                    topMargin - standOffset,
+                    fieldHeight + (standOffset * 2),
+                    'vertical'
+                );
+                
+                console.log(`🦆 Crowd system initialized with ${this.spectators.length} spectators`);
+            }
+            
+            createStandRow(startX, startY, length, orientation) {
+                const count = Math.floor(length / this.spectatorSpacing);
+                
+                for (let i = 0; i < count; i++) {
+                    const position = i * this.spectatorSpacing + (this.spectatorSpacing / 2);
+                    const randomOffset = (Math.random() - 0.5) * 10; // Add some variation
+                    
+                    let x, y;
+                    if (orientation === 'horizontal') {
+                        x = startX + position + randomOffset;
+                        y = startY;
+                    } else {
+                        x = startX;
+                        y = startY + position + randomOffset;
+                    }
+                    
+                    this.spectators.push({
+                        x: x,
+                        y: y,
+                        baseY: y, // Store original y for wave animation
+                        phase: Math.random() * Math.PI * 2, // Random phase for wave
+                        color: this.spectatorColors[Math.floor(Math.random() * this.spectatorColors.length)],
+                        radius: this.spectatorRadius + (Math.random() - 0.5) * 2 // Slight size variation
+                    });
+                }
+            }
+            
+            update(deltaTime) {
+                // Update time for wave animation
+                this.time += deltaTime || 16; // Default 16ms if no deltaTime
+            }
+            
+            draw() {
+                ctx.save();
+                
+                // Draw spectators with wave animation
+                this.spectators.forEach(spectator => {
+                    // Calculate wave offset
+                    const waveOffset = Math.sin(this.time * this.waveSpeed + spectator.phase) * this.waveAmplitude;
+                    const currentY = spectator.baseY + waveOffset;
+                    
+                    // Draw spectator head (simple circle)
+                    ctx.beginPath();
+                    ctx.arc(spectator.x, currentY, spectator.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = spectator.color;
+                    ctx.fill();
+                    
+                    // Optional: add darker outline for depth
+                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                });
+                
+                ctx.restore();
+            }
+        }
+
+        // ====================================
+        // END CROWD SYSTEM
+        // ====================================
+
         class Game {
             constructor() {
                 this.isMultiplayer = isMultiplayer;
@@ -1407,6 +1536,14 @@
                     { x: canvas.width - margin, y: centerY - 90, radius: 8 },  // Πάνω
                     { x: canvas.width - margin, y: centerY + 90, radius: 8 }   // Κάτω
                 ];
+                
+                // 🦆 Initialize Crowd System
+                this.crowdSystem = new CrowdSystem({
+                    sideMargin: 240,
+                    topMargin: 180,
+                    bottomMargin: 80,
+                    borderWidth: 45
+                });
                 
                 // Αρχικές θέσεις παικτών - Οριζόντιο γήπεδο
                 
@@ -2199,6 +2336,9 @@
             }
 
             update() {
+                // 🦆 Update crowd animation
+                this.crowdSystem.update(16); // Approximate 60fps delta
+                
                 // Έλεγχος αν υπάρχει μήνυμα γκολ
                 if (this.goalMessage) {
                     const elapsed = Date.now() - this.goalMessageTime;
@@ -2313,6 +2453,9 @@
             }
 
             draw() {
+                // 🦆 Draw crowd first (behind everything)
+                this.crowdSystem.draw();
+                
                 this.drawField();
                 
                 // Σχεδίαση ταμπέλας σκορ πρώτα (πίσω από το γήπεδο αλλά εμφανής)
