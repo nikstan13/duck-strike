@@ -1488,8 +1488,21 @@
                     
                     if (dragDistance < cancelThreshold) {
                         // 🔄 Πολύ μικρό drag - ΑΚΥΡΩΣΗ και μπορείς να διαλέξεις άλλο παίκτη!
-                        console.log('Drag cancelled! Distance:', dragDistance, '< threshold:', cancelThreshold);
-                        this.selectedPlayer.selected = false;
+                        console.log('❌ Shot CANCELLED! Distance:', dragDistance, '< threshold:', cancelThreshold);
+                        
+                        // Visual feedback: Flash effect before deselect
+                        const deselectedPlayer = this.selectedPlayer;
+                        deselectedPlayer.selected = false;
+                        
+                        // Brief red flash to show cancellation
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.arc(deselectedPlayer.x, deselectedPlayer.y, deselectedPlayer.radius + 12, 0, Math.PI * 2);
+                        ctx.strokeStyle = '#FF0000';  // Red για cancel
+                        ctx.lineWidth = 6;
+                        ctx.stroke();
+                        ctx.restore();
+                        
                         this.selectedPlayer = null;
                         this.dragStart = null;
                         this.currentDrag = null;
