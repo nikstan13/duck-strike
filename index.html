@@ -1390,10 +1390,10 @@
                 this.fieldMargins = fieldMargins; // { sideMargin, topMargin, bottomMargin, borderWidth }
                 
                 // Configuration
-                this.spectatorRadius = 12; // Increased from 8
-                this.spectatorSpacing = 25; // Increased from 20
-                this.waveAmplitude = 5; // Increased from 3
-                this.waveSpeed = 0.003; // Slightly faster
+                this.spectatorRadius = 20; // HUGE for testing (was 12)
+                this.spectatorSpacing = 30; // Increased from 25
+                this.waveAmplitude = 10; // Increased from 5
+                this.waveSpeed = 0.005; // Faster
                 
                 // Colors for variety
                 this.spectatorColors = [
@@ -1485,6 +1485,13 @@
             }
             
             draw() {
+                // Debug: Log first time
+                if (!this.hasLogged && this.spectators.length > 0) {
+                    console.log('🎨 Drawing crowd:', this.spectators.length, 'spectators');
+                    console.log('First spectator:', this.spectators[0]);
+                    this.hasLogged = true;
+                }
+                
                 ctx.save();
                 
                 // Draw spectators with wave animation
@@ -1493,15 +1500,15 @@
                     const waveOffset = Math.sin(this.time * this.waveSpeed + spectator.phase) * this.waveAmplitude;
                     const currentY = spectator.baseY + waveOffset;
                     
-                    // Draw spectator head (simple circle)
+                    // Draw spectator head (VERY VISIBLE for testing)
                     ctx.beginPath();
                     ctx.arc(spectator.x, currentY, spectator.radius, 0, Math.PI * 2);
                     ctx.fillStyle = spectator.color;
                     ctx.fill();
                     
                     // Add visible outline for contrast against black background
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                    ctx.lineWidth = 3;
                     ctx.stroke();
                 });
                 
@@ -1781,8 +1788,8 @@
             }
 
             drawField() {
-                // Φόντο
-                ctx.fillStyle = COLORS.orange;
+                // Φόντο - Very dark grey to see crowd better
+                ctx.fillStyle = '#1a1a1a'; // Dark grey instead of pure black
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
                 // 🦆 Draw crowd AFTER background but BEFORE field
