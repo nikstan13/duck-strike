@@ -1482,16 +1482,18 @@
                     
                     console.log('Drag values:', dragX, dragY, 'Distance:', Math.sqrt(dragX*dragX + dragY*dragY));
                     
-                    // Έλεγχος για πολύ μικρό drag (tap χωρίς drag)
+                    // Έλεγχος για πολύ μικρό drag (tap χωρίς drag ή cancel)
                     const dragDistance = Math.sqrt(dragX * dragX + dragY * dragY);
-                    if (dragDistance < 5) {
-                        // Πολύ μικρό drag - ακύρωση
-                        console.log('Drag too small, canceling');
+                    const cancelThreshold = 20; // 20 pixels = cancel (πολύ εύκολο να ακυρώσεις!)
+                    
+                    if (dragDistance < cancelThreshold) {
+                        // 🔄 Πολύ μικρό drag - ΑΚΥΡΩΣΗ και μπορείς να διαλέξεις άλλο παίκτη!
+                        console.log('Drag cancelled! Distance:', dragDistance, '< threshold:', cancelThreshold);
                         this.selectedPlayer.selected = false;
                         this.selectedPlayer = null;
                         this.dragStart = null;
                         this.currentDrag = null;
-                        return;
+                        return; // Return χωρίς shoot - μπορείς να κάνεις άλλο click!
                     }
                     
                     // Εκτόξευση με slingshot mechanics
