@@ -1390,10 +1390,10 @@
                 this.fieldMargins = fieldMargins; // { sideMargin, topMargin, bottomMargin, borderWidth }
                 
                 // Configuration
-                this.spectatorRadius = 8;
-                this.spectatorSpacing = 20;
-                this.waveAmplitude = 3;
-                this.waveSpeed = 0.002; // Slow wave for subtle effect
+                this.spectatorRadius = 12; // Increased from 8
+                this.spectatorSpacing = 25; // Increased from 20
+                this.waveAmplitude = 5; // Increased from 3
+                this.waveSpeed = 0.003; // Slightly faster
                 
                 // Colors for variety
                 this.spectatorColors = [
@@ -1409,9 +1409,9 @@
                 const fieldWidth = canvas.width - (sideMargin * 2);
                 const fieldHeight = canvas.height - topMargin - bottomMargin;
                 
-                // Define crowd zones (outside the field border)
-                const crowdDepth = 40; // How far back the crowd extends
-                const standOffset = borderWidth + 10; // Offset from field border
+                // Define crowd zones (CLOSER to field for visibility)
+                const crowdDepth = 25; // Reduced from 40
+                const standOffset = borderWidth + 5; // Reduced from 10
                 
                 // Top stand
                 this.createStandRow(
@@ -1446,6 +1446,10 @@
                 );
                 
                 console.log(`🦆 Crowd system initialized with ${this.spectators.length} spectators`);
+                if (this.spectators.length > 0) {
+                    console.log(`First spectator at: x=${this.spectators[0].x.toFixed(0)}, y=${this.spectators[0].y.toFixed(0)}`);
+                    console.log(`Canvas size: ${canvas.width} x ${canvas.height}`);
+                }
             }
             
             createStandRow(startX, startY, length, orientation) {
@@ -1495,9 +1499,9 @@
                     ctx.fillStyle = spectator.color;
                     ctx.fill();
                     
-                    // Optional: add darker outline for depth
-                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-                    ctx.lineWidth = 1;
+                    // Add visible outline for contrast against black background
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+                    ctx.lineWidth = 2;
                     ctx.stroke();
                 });
                 
