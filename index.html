@@ -275,7 +275,7 @@
             #gameCanvas {
                 width: 100vw;
                 height: auto;
-                transform: scale(0.92) translateY(-80px); /* Ακόμα πιο πάνω για landscape */
+                transform: scale(0.98) translateY(-30px); /* Μεγαλύτερο zoom με vertical scoreboard */
             }
         }
 
@@ -1791,49 +1791,90 @@
             }
 
             drawScoreboard() {
-                // Σύγχρονο minimalist scoreboard - Πάνω κέντρο
-                const scoreboardWidth = 400;
-                const scoreboardHeight = 100;
-                const scoreboardX = canvas.width / 2 - scoreboardWidth / 2;
-                const scoreboardY = 20;
+                // Έλεγχος αν είναι mobile και landscape
+                const isMobileLandscape = window.innerWidth < 1024 && window.innerWidth > window.innerHeight;
                 
-                // Κύριο background με ημιδιάφανο μαύρο
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
-                ctx.roundRect(scoreboardX, scoreboardY, scoreboardWidth, scoreboardHeight, 15);
-                ctx.fill();
-                
-                // Λευκό outline
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-                ctx.lineWidth = 2;
-                ctx.roundRect(scoreboardX, scoreboardY, scoreboardWidth, scoreboardHeight, 15);
-                ctx.stroke();
-                
-                // Αριστερό τμήμα - Μπλε ομάδα (Player)
-                const leftSectionX = scoreboardX + 20;
-                const leftSectionY = scoreboardY + 25;
-                
-                // Σκορ μπλε ομάδας (Player - αριστερά)
-                ctx.font = 'bold 48px Arial';
-                ctx.fillStyle = '#2745e1';
-                ctx.textAlign = 'center';
-                ctx.fillText(this.playerScore, leftSectionX + 50, leftSectionY + 40);
-                
-                // Divider στη μέση
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-                ctx.font = 'bold 40px Arial';
-                ctx.fillText(':', canvas.width / 2, leftSectionY + 38);
-                
-                // Δεξί τμήμα - Κόκκινη ομάδα (Bot)
-                const rightSectionX = scoreboardX + scoreboardWidth - 120;
-                
-                // Σκορ κόκκινης ομάδας (Bot - δεξιά)
-                ctx.font = 'bold 48px Arial';
-                ctx.fillStyle = '#ff3420';
-                ctx.textAlign = 'center';
-                ctx.fillText(this.botScore, rightSectionX + 50, leftSectionY + 40);
-                
-                // Reset text align
-                ctx.textAlign = 'left';
+                if (isMobileLandscape) {
+                    // Κάθετο scoreboard στο αριστερό πλάι για mobile landscape
+                    const scoreboardWidth = 80;
+                    const scoreboardHeight = 200;
+                    const scoreboardX = 10;
+                    const scoreboardY = canvas.height / 2 - scoreboardHeight / 2;
+                    
+                    // Κύριο background
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+                    ctx.roundRect(scoreboardX, scoreboardY, scoreboardWidth, scoreboardHeight, 15);
+                    ctx.fill();
+                    
+                    // Outline
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.lineWidth = 2;
+                    ctx.roundRect(scoreboardX, scoreboardY, scoreboardWidth, scoreboardHeight, 15);
+                    ctx.stroke();
+                    
+                    // Σκορ μπλε ομάδας (πάνω)
+                    ctx.font = 'bold 40px Arial';
+                    ctx.fillStyle = '#2745e1';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(this.playerScore, scoreboardX + scoreboardWidth / 2, scoreboardY + 60);
+                    
+                    // Divider
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.font = 'bold 30px Arial';
+                    ctx.fillText(':', scoreboardX + scoreboardWidth / 2, scoreboardY + scoreboardHeight / 2 + 10);
+                    
+                    // Σκορ κόκκινης ομάδας (κάτω)
+                    ctx.font = 'bold 40px Arial';
+                    ctx.fillStyle = '#ff3420';
+                    ctx.fillText(this.botScore, scoreboardX + scoreboardWidth / 2, scoreboardY + scoreboardHeight - 40);
+                    
+                    // Reset
+                    ctx.textAlign = 'left';
+                } else {
+                    // Οριζόντιο scoreboard για desktop και portrait
+                    const scoreboardWidth = 400;
+                    const scoreboardHeight = 100;
+                    const scoreboardX = canvas.width / 2 - scoreboardWidth / 2;
+                    const scoreboardY = 20;
+                    
+                    // Κύριο background με ημιδιάφανο μαύρο
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+                    ctx.roundRect(scoreboardX, scoreboardY, scoreboardWidth, scoreboardHeight, 15);
+                    ctx.fill();
+                    
+                    // Λευκό outline
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                    ctx.lineWidth = 2;
+                    ctx.roundRect(scoreboardX, scoreboardY, scoreboardWidth, scoreboardHeight, 15);
+                    ctx.stroke();
+                    
+                    // Αριστερό τμήμα - Μπλε ομάδα (Player)
+                    const leftSectionX = scoreboardX + 20;
+                    const leftSectionY = scoreboardY + 25;
+                    
+                    // Σκορ μπλε ομάδας (Player - αριστερά)
+                    ctx.font = 'bold 48px Arial';
+                    ctx.fillStyle = '#2745e1';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(this.playerScore, leftSectionX + 50, leftSectionY + 40);
+                    
+                    // Divider στη μέση
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.font = 'bold 40px Arial';
+                    ctx.fillText(':', canvas.width / 2, leftSectionY + 38);
+                    
+                    // Δεξί τμήμα - Κόκκινη ομάδα (Bot)
+                    const rightSectionX = scoreboardX + scoreboardWidth - 120;
+                    
+                    // Σκορ κόκκινης ομάδας (Bot - δεξιά)
+                    ctx.font = 'bold 48px Arial';
+                    ctx.fillStyle = '#ff3420';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(this.botScore, rightSectionX + 50, leftSectionY + 40);
+                    
+                    // Reset text align
+                    ctx.textAlign = 'left';
+                }
             }
 
             resetPositions() {
