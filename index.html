@@ -1785,6 +1785,11 @@
                 ctx.fillStyle = COLORS.orange;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
+                // 🦆 Draw crowd AFTER background but BEFORE field
+                if (this.crowdSystem) {
+                    this.crowdSystem.draw();
+                }
+                
                 // Ταμπέλα σκορ στο φόντο (πάνω από το γήπεδο)
                 this.drawScoreboard();
 
@@ -2457,9 +2462,6 @@
             }
 
             draw() {
-                // 🦆 Draw crowd first (behind everything)
-                this.crowdSystem.draw();
-                
                 this.drawField();
                 
                 // Σχεδίαση ταμπέλας σκορ πρώτα (πίσω από το γήπεδο αλλά εμφανής)
