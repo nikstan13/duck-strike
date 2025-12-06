@@ -1451,6 +1451,7 @@
                         this.selectedPlayer = player;
                         player.selected = true;
                         this.dragStart = { x: player.x, y: player.y };
+                        this.lastValidDrag = null; // Reset για νέο drag
                         console.log('Selected player at:', player.x, player.y);
                         break;
                     }
@@ -2250,9 +2251,25 @@
                     const dy = this.dragStart.y - this.currentDrag.y;
                     const distance = Math.sqrt(dx * dx + dy * dy);
                     
+                    // 🎯 ΝΕΟ: Αν το distance είναι πολύ μικρό (cursor πάνω στον παίκτη),
+                    // χρησιμοποίησε την τελευταία έγκυρη θέση για να φαίνεται το power meter
+                    let displayDx = dx;
+                    let displayDy = dy;
+                    let displayDistance = distance;
+                    
+                    // Κράτα την τελευταία έγκυρη θέση drag > 30px
+                    if (distance > 30) {
+                        this.lastValidDrag = { dx: dx, dy: dy, distance: distance };
+                    } else if (this.lastValidDrag) {
+                        // Χρησιμοποίησε την τελευταία έγκυρη
+                        displayDx = this.lastValidDrag.dx;
+                        displayDy = this.lastValidDrag.dy;
+                        displayDistance = this.lastValidDrag.distance;
+                    }
+                    
                     // Μέγιστη απόσταση και πραγματική δύναμη
                     const maxDragDistance = 200;
-                    const actualDistance = Math.min(distance, maxDragDistance);
+                    const actualDistance = Math.min(displayDistance, maxDragDistance);
                     const power = (actualDistance / maxDragDistance) * 100; // 0-100%
                     
                     // Γραμμή σφεντόνας - Πιο παχιά
@@ -2265,7 +2282,7 @@
                     
                     // Βέλος που δείχνει την κατεύθυνση εκτόξευσης - Συνεπές μήκος
                     const arrowLength = actualDistance * 1.0; // Το βέλος είναι ανάλογο της δύναμης
-                    const angle = Math.atan2(-dy, -dx);
+                    const angle = Math.atan2(-displayDy, -displayDx);
                     const arrowX = this.selectedPlayer.x + Math.cos(angle) * arrowLength;
                     const arrowY = this.selectedPlayer.y + Math.sin(angle) * arrowLength;
                     
