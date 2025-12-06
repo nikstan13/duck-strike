@@ -1451,7 +1451,6 @@
                         this.selectedPlayer = player;
                         player.selected = true;
                         this.dragStart = { x: player.x, y: player.y };
-                        this.lastValidDrag = null; // Reset για νέο drag
                         console.log('Selected player at:', player.x, player.y);
                         break;
                     }
@@ -2251,98 +2250,103 @@
                     const dy = this.dragStart.y - this.currentDrag.y;
                     const distance = Math.sqrt(dx * dx + dy * dy);
                     
-                    // 🎯 ΝΕΟ: Αν το distance είναι πολύ μικρό (cursor πάνω στον παίκτη),
-                    // χρησιμοποίησε την τελευταία έγκυρη θέση για να φαίνεται το power meter
-                    let displayDx = dx;
-                    let displayDy = dy;
-                    let displayDistance = distance;
-                    
-                    // Κράτα την τελευταία έγκυρη θέση drag > 30px
-                    if (distance > 30) {
-                        this.lastValidDrag = { dx: dx, dy: dy, distance: distance };
-                    } else if (this.lastValidDrag) {
-                        // Χρησιμοποίησε την τελευταία έγκυρη
-                        displayDx = this.lastValidDrag.dx;
-                        displayDy = this.lastValidDrag.dy;
-                        displayDistance = this.lastValidDrag.distance;
-                    }
-                    
-                    // Μέγιστη απόσταση και πραγματική δύναμη
-                    const maxDragDistance = 200;
-                    const actualDistance = Math.min(displayDistance, maxDragDistance);
-                    const power = (actualDistance / maxDragDistance) * 100; // 0-100%
-                    
-                    // Γραμμή σφεντόνας - Πιο παχιά
-                    ctx.beginPath();
-                    ctx.moveTo(this.selectedPlayer.x, this.selectedPlayer.y);
-                    ctx.lineTo(this.currentDrag.x, this.currentDrag.y);
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-                    ctx.lineWidth = 5;
-                    ctx.stroke();
-                    
-                    // Βέλος που δείχνει την κατεύθυνση εκτόξευσης - Συνεπές μήκος
-                    const arrowLength = actualDistance * 1.0; // Το βέλος είναι ανάλογο της δύναμης
-                    const angle = Math.atan2(-displayDy, -displayDx);
-                    const arrowX = this.selectedPlayer.x + Math.cos(angle) * arrowLength;
-                    const arrowY = this.selectedPlayer.y + Math.sin(angle) * arrowLength;
-                    
-                    // Βέλος με gradient - χρώμα ανάλογο της δύναμης
-                    const gradient = ctx.createLinearGradient(
-                        this.selectedPlayer.x, this.selectedPlayer.y,
-                        arrowX, arrowY
+                    // 🎯 ΕΛΕΓΧΟΣ: Αν ο cursor είναι πάνω στον παίκτη → ΜΗΝ δείξεις power meter!
+                    const distanceFromPlayer = Math.sqrt(
+                        (this.currentDrag.x - this.selectedPlayer.x) ** 2 + 
+                        (this.currentDrag.y - this.selectedPlayer.y) ** 2
                     );
+                    const playerRadius = this.selectedPlayer.radius;
                     
-                    if (power < 33) {
-                        gradient.addColorStop(0, 'rgba(100, 255, 100, 1)'); // Πράσινο = χαμηλή δύναμη
-                        gradient.addColorStop(1, 'rgba(255, 255, 100, 1)');
-                    } else if (power < 66) {
-                        gradient.addColorStop(0, 'rgba(255, 255, 100, 1)'); // Κίτρινο = μεσαία δύναμη
-                        gradient.addColorStop(1, 'rgba(255, 200, 0, 1)');
+                    // Αν είναι μέσα στον κύκλο (άκυρο σουτ), μην σχεδιάσεις τίποτα
+                    if (distanceFromPlayer <= playerRadius * 1.5) {
+                        // ΑΚΥΡΟ - δεν σχεδιάζουμε power meter
+                        // Δείξε μόνο ένα hint ότι είναι cancel zone
+                        ctx.beginPath();
+                        ctx.arc(this.selectedPlayer.x, this.selectedPlayer.y, playerRadius * 1.5, 0, Math.PI * 2);
+                        ctx.strokeStyle = 'rgba(255, 100, 100, 0.4)'; // Κόκκινο για cancel zone
+                        ctx.lineWidth = 3;
+                        ctx.setLineDash([10, 10]);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
                     } else {
-                        gradient.addColorStop(0, 'rgba(255, 200, 0, 1)'); // Πορτοκαλί/Κόκκινο = υψηλή δύναμη
-                        gradient.addColorStop(1, 'rgba(255, 100, 0, 1)');
-                    }
+                        // ΕΓΚΥΡΟ σουτ - δείξε το power meter κανονικά
+                        // Μέγιστη απόσταση και πραγματική δύναμη
+                        const maxDragDistance = 200;
+                        const actualDistance = Math.min(distance, maxDragDistance);
+                        const power = (actualDistance / maxDragDistance) * 100; // 0-100%
                     
-                    ctx.beginPath();
-                    ctx.moveTo(this.selectedPlayer.x, this.selectedPlayer.y);
-                    ctx.lineTo(arrowX, arrowY);
-                    ctx.strokeStyle = gradient;
-                    ctx.lineWidth = 8;
-                    ctx.stroke();
-                    
-                    // Κεφάλι βέλους - Μεγαλύτερο
-                    const arrowHeadSize = 20;
-                    ctx.beginPath();
-                    ctx.moveTo(arrowX, arrowY);
-                    ctx.lineTo(
-                        arrowX - arrowHeadSize * Math.cos(angle - Math.PI / 6),
-                        arrowY - arrowHeadSize * Math.sin(angle - Math.PI / 6)
-                    );
-                    ctx.moveTo(arrowX, arrowY);
-                    ctx.lineTo(
-                        arrowX - arrowHeadSize * Math.cos(angle + Math.PI / 6),
-                        arrowY - arrowHeadSize * Math.sin(angle + Math.PI / 6)
-                    );
-                    ctx.strokeStyle = power > 66 ? 'rgba(255, 100, 0, 1)' : 'rgba(255, 200, 0, 1)';
-                    ctx.lineWidth = 8;
-                    ctx.stroke();
-                    
-                    // Δείκτης δύναμης - ΑΚΡΙΒΗΣ ποσοστό
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-                    ctx.font = 'bold 32px Arial';
-                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
-                    ctx.lineWidth = 3;
-                    const powerText = `${Math.floor(power)}%`;
-                    ctx.strokeText(powerText, this.currentDrag.x + 30, this.currentDrag.y - 30);
-                    ctx.fillText(powerText, this.currentDrag.x + 30, this.currentDrag.y - 30);
-                    
-                    // Προειδοποίηση αν έφτασες το μέγιστο
-                    if (distance >= maxDragDistance) {
-                        ctx.fillStyle = 'rgba(255, 50, 50, 0.95)';
-                        ctx.font = 'bold 24px Arial';
-                        ctx.strokeText('MAX!', this.currentDrag.x + 30, this.currentDrag.y - 65);
-                        ctx.fillText('MAX!', this.currentDrag.x + 30, this.currentDrag.y - 65);
-                    }
+                        // Γραμμή σφεντόνας - Πιο παχιά
+                        ctx.beginPath();
+                        ctx.moveTo(this.selectedPlayer.x, this.selectedPlayer.y);
+                        ctx.lineTo(this.currentDrag.x, this.currentDrag.y);
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+                        ctx.lineWidth = 5;
+                        ctx.stroke();
+                        
+                        // Βέλος που δείχνει την κατεύθυνση εκτόξευσης - Συνεπές μήκος
+                        const arrowLength = actualDistance * 1.0; // Το βέλος είναι ανάλογο της δύναμης
+                        const angle = Math.atan2(-dy, -dx);
+                        const arrowX = this.selectedPlayer.x + Math.cos(angle) * arrowLength;
+                            const arrowY = this.selectedPlayer.y + Math.sin(angle) * arrowLength;
+                        
+                        // Βέλος με gradient - χρώμα ανάλογο της δύναμης
+                        const gradient = ctx.createLinearGradient(
+                            this.selectedPlayer.x, this.selectedPlayer.y,
+                            arrowX, arrowY
+                        );
+                        
+                        if (power < 33) {
+                            gradient.addColorStop(0, 'rgba(100, 255, 100, 1)'); // Πράσινο = χαμηλή δύναμη
+                            gradient.addColorStop(1, 'rgba(255, 255, 100, 1)');
+                        } else if (power < 66) {
+                            gradient.addColorStop(0, 'rgba(255, 255, 100, 1)'); // Κίτρινο = μεσαία δύναμη
+                            gradient.addColorStop(1, 'rgba(255, 200, 0, 1)');
+                        } else {
+                            gradient.addColorStop(0, 'rgba(255, 200, 0, 1)'); // Πορτοκαλί/Κόκκινο = υψηλή δύναμη
+                            gradient.addColorStop(1, 'rgba(255, 100, 0, 1)');
+                        }
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(this.selectedPlayer.x, this.selectedPlayer.y);
+                        ctx.lineTo(arrowX, arrowY);
+                        ctx.strokeStyle = gradient;
+                        ctx.lineWidth = 8;
+                        ctx.stroke();
+                        
+                        // Κεφάλι βέλους - Μεγαλύτερο
+                        const arrowHeadSize = 20;
+                        ctx.beginPath();
+                        ctx.moveTo(arrowX, arrowY);
+                        ctx.lineTo(
+                            arrowX - arrowHeadSize * Math.cos(angle - Math.PI / 6),
+                            arrowY - arrowHeadSize * Math.sin(angle - Math.PI / 6)
+                        );
+                        ctx.moveTo(arrowX, arrowY);
+                        ctx.lineTo(
+                            arrowX - arrowHeadSize * Math.cos(angle + Math.PI / 6),
+                            arrowY - arrowHeadSize * Math.sin(angle + Math.PI / 6)
+                        );
+                        ctx.strokeStyle = power > 66 ? 'rgba(255, 100, 0, 1)' : 'rgba(255, 200, 0, 1)';
+                        ctx.lineWidth = 8;
+                        ctx.stroke();
+                        
+                        // Δείκτης δύναμης - ΑΚΡΙΒΗΣ ποσοστό
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+                        ctx.font = 'bold 32px Arial';
+                        ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+                        ctx.lineWidth = 3;
+                        const powerText = `${Math.floor(power)}%`;
+                        ctx.strokeText(powerText, this.currentDrag.x + 30, this.currentDrag.y - 30);
+                        ctx.fillText(powerText, this.currentDrag.x + 30, this.currentDrag.y - 30);
+                        
+                        // Προειδοποίηση αν έφτασες το μέγιστο
+                        if (distance >= maxDragDistance) {
+                            ctx.fillStyle = 'rgba(255, 50, 50, 0.95)';
+                            ctx.font = 'bold 24px Arial';
+                            ctx.strokeText('MAX!', this.currentDrag.x + 30, this.currentDrag.y - 65);
+                            ctx.fillText('MAX!', this.currentDrag.x + 30, this.currentDrag.y - 65);
+                        }
+                    } // Κλείσιμο του else block
                 }
                 
                 this.botTeam.forEach(p => p.draw());
