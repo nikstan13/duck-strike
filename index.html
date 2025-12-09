@@ -2079,6 +2079,9 @@
                 
                 // Reset μπάλας
                 this.ball.reset();
+                
+                // 🎲 Reset bot shot counter for new variety
+                this.botShotCount = 0;
             }
 
             botMove() {
@@ -2097,6 +2100,9 @@
                 if (Date.now() - this.botThinkingTime < 1000) return; // 1 δευτερόλεπτο σκέψη
                 
                 this.botThinkingTime = null;
+                
+                // 🎲 Initialize shot counter
+                if (!this.botShotCount) this.botShotCount = 0;
 
                 // ✅ Phase 1.2: Προσδιορισμός θέσης player goal (αριστερά)
                 const sideMargin = 240;
@@ -2109,16 +2115,36 @@
                 // ✅ Phase 3: Smart Player Selection - Βρες τον καλύτερο παίκτη
                 let bestPlayer = null;
                 let bestScore = -Infinity;
+                
+                // 🎲 FIX 1: Random opening moves (πρώτα 3 shots)
+                if (this.botShotCount < 3 && Math.random() < 0.6) {
+                    // 60% πιθανότητα τυχαίου παίκτη στα πρώτα 3 shots
+                    const availablePlayers = this.botTeam.filter(bot => {
+                        const dist = Math.sqrt((bot.x - this.ball.x)**2 + (bot.y - this.ball.y)**2);
+                        return dist > 50 && dist < 600; // Όχι πολύ κοντά/μακριά
+                    });
+                    
+                    if (availablePlayers.length > 0) {
+                        bestPlayer = availablePlayers[Math.floor(Math.random() * availablePlayers.length)];
+                        console.log('🎲 Bot chose RANDOM player for variety!');
+                    }
+                }
 
-                for (let bot of this.botTeam) {
-                    const score = this.evaluatePlayerQuality(bot, this.ball, {x: playerGoalX, y: playerGoalY});
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestPlayer = bot;
+                // Αν δεν επιλέχθηκε τυχαίος, χρησιμοποίησε smart selection
+                if (!bestPlayer) {
+                    for (let bot of this.botTeam) {
+                        const score = this.evaluatePlayerQuality(bot, this.ball, {x: playerGoalX, y: playerGoalY});
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestPlayer = bot;
+                        }
                     }
                 }
 
                 if (!bestPlayer) return;
+                
+                // Increment shot counter
+                this.botShotCount++;
 
                 // ✅ Phase 4: Adaptive Strategy - Καθόρισε στρατηγική
                 const strategy = this.determineStrategy();
@@ -2174,14 +2200,34 @@
                     return {canShoot: false}; // Πολύ μακριά
                 }
 
-                // 2.2b: Διάνυσμα ball → goal
-                const ballToGoalX = goal.x - ball.x;
-                const ballToGoalY = goal.y - ball.y;
-                
-                // 2.2c: Υπολογισμός έμμεσης κατεύθυνσης (χτύπημα μπάλας προς τέρμα)
-                // Κανονικοποίηση κατεύθυνσης προς μπάλα
+                // 2.2b: Κανονικοποίηση κατεύθυνσης προς μπάλα
                 const dirX = toBallX / distToBall;
                 const dirY = toBallY / distToBall;
+                
+                // 🚨 FIX 2: Own Goal Prevention
+                // Υπολογισμός που θα πάει η μπάλα ΜΕΤΑ το χτύπημα
+                const predictedBallX = ball.x + (dirX * 300); // Προβολή 300px
+                
+                // Το BOT τέρμα είναι ΔΕΞΙΑ (canvas.width - 240)
+                const botGoalX = canvas.width - 240;
+                const playerGoalX = 240;
+                
+                // Έλεγχος: Η μπάλα πάει προς το ΔΙΚΟ ΜΑΣ τέρμα (δεξιά);
+                const currentBallToOwnGoal = ball.x - botGoalX; // Αρνητικό = μπάλα αριστερά από bot goal
+                const predictedBallToOwnGoal = predictedBallX - botGoalX;
+                
+                // Αν η μπάλα πλησιάζει το δικό μας τέρμα (πάει δεξιά)
+                const goingTowardsOwnGoal = predictedBallToOwnGoal > currentBallToOwnGoal;
+                
+                if (goingTowardsOwnGoal && Math.abs(predictedBallToOwnGoal) < 400) {
+                    // ΚΙΝΔΥΝΟΣ ΑΥΤΟΓΚΟΛ - Don't shoot!
+                    console.warn('⚠️ Bot avoided potential OWN GOAL! Predicted X:', predictedBallX.toFixed(0));
+                    return {canShoot: false};
+                }
+                
+                // 2.2c: Διάνυσμα ball → goal
+                const ballToGoalX = goal.x - ball.x;
+                const ballToGoalY = goal.y - ball.y;
                 
                 // Power βάσει strategy και απόστασης
                 let basePower;
