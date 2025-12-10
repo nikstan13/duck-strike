@@ -2084,6 +2084,27 @@
                 }
             }
 
+            freezeAllMovement() {
+                // 🚨 ΣΤΑΜΑΤΑ ΟΛΟΥΣ τους παίκτες και τη μπάλα ΑΜΕΣΩΣ
+                this.playerTeam.forEach(player => {
+                    player.vx = 0;
+                    player.vy = 0;
+                    player.moving = false;
+                });
+                
+                this.botTeam.forEach(player => {
+                    player.vx = 0;
+                    player.vy = 0;
+                    player.moving = false;
+                });
+                
+                // Σταμάτα τη μπάλα
+                this.ball.vx = 0;
+                this.ball.vy = 0;
+                
+                console.log('🚫 All movement frozen after goal');
+            }
+
             resetPositions() {
                 // Reset παικτών στις αρχικές θέσεις
                 this.playerTeam.forEach((player, i) => {
@@ -2346,9 +2367,12 @@
             }
 
             checkTurnComplete() {
+                // 🚨 Αν υπάρχει μήνυμα γκολ, ΔΕΝ ελέγχουμε τίποτα
+                if (this.goalMessage) return;
+                
                 // Ελέγχει αν όλα έχουν σταματήσει
                 const anyMoving = [...this.playerTeam, ...this.botTeam].some(p => p.moving);
-                const ballMoving = Math.abs(this.ball.vx) > 0.1 || Math.abs(this.ball.vy) > 0.1;
+                const ballMoving = Math.abs(this.ball.vx) > 0.3 || Math.abs(this.ball.vy) > 0.3;
                 
                 if (!anyMoving && !ballMoving && !this.turnComplete) {
                     // Έλεγχος αν κάποιος παίκτης είναι μέσα στο τέρμα > 70%
@@ -2444,21 +2468,25 @@
                     this.goalMessage = 'ΓΚΟΛ!\nΣκόραρε το BOT!';
                     this.goalMessageTime = Date.now();
                     this.currentTurn = 'player'; // Αυτός που έφαγε γκολ παίζει
+                    this.freezeAllMovement(); // 🚨 ΣΤΑΜΑΤΑ ΟΛΑ ΑΜΕΣΩΣ
                 } else if (goal === 'bot_goal') {
                     this.playerScore++;
                     this.goalMessage = 'ΓΚΟΛ!\nΣκόραρες!';
                     this.goalMessageTime = Date.now();
                     this.currentTurn = 'bot'; // Αυτός που έφαγε γκολ παίζει
+                    this.freezeAllMovement(); // 🚨 ΣΤΑΜΑΤΑ ΟΛΑ ΑΜΕΣΩΣ
                 } else if (goal === 'foul_player_goal') {
                     // ΦΑΟΥΛ! Το bot προσπάθησε να σκοράρει από το κέντρο
                     this.goalMessage = 'ΦΑΟΥΛ!\nΔεν μπορείς να σκοράρεις\nαπό το κέντρο!';
                     this.goalMessageTime = Date.now();
                     this.currentTurn = 'player'; // Παίζει ο player
+                    this.freezeAllMovement(); // 🚨 ΣΤΑΜΑΤΑ ΟΛΑ ΑΜΕΣΩΣ
                 } else if (goal === 'foul_bot_goal') {
                     // ΦΑΟΥΛ! Ο player προσπάθησε να σκοράρει από το κέντρο
                     this.goalMessage = 'ΦΑΟΥΛ!\nΔεν μπορείς να σκοράρεις\nαπό το κέντρο!';
                     this.goalMessageTime = Date.now();
                     this.currentTurn = 'bot'; // Παίζει ο bot
+                    this.freezeAllMovement(); // 🚨 ΣΤΑΜΑΤΑ ΟΛΑ ΑΜΕΣΩΣ
                 }
 
                 // Έλεγχος αν τελείωσε η σειρά
