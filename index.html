@@ -1033,11 +1033,36 @@
                     }
                 }
                 
-                // 🚨 EMERGENCY SAFETY CHECK - Αν η μπάλα φύγει εκτός canvas!
-                const safetyMargin = 10;
+                // 🚨 ULTIMATE SAFETY NET - Επιβολή σκληρών ορίων (για fast-moving balls)
+                // Αριστερό όριο (εκτός τέρματος)
+                if (this.x - this.radius < sideMargin && (this.y < goalTop || this.y > goalBottom)) {
+                    this.x = sideMargin + this.radius;
+                    this.vx = Math.abs(this.vx) * 0.6; // Bounce δεξιά
+                }
+                
+                // Δεξί όριο (εκτός τέρματος)
+                if (this.x + this.radius > canvas.width - sideMargin && (this.y < goalTop || this.y > goalBottom)) {
+                    this.x = canvas.width - sideMargin - this.radius;
+                    this.vx = -Math.abs(this.vx) * 0.6; // Bounce αριστερά
+                }
+                
+                // Πάνω όριο
+                if (this.y - this.radius < topMargin) {
+                    this.y = topMargin + this.radius;
+                    this.vy = Math.abs(this.vy) * 0.6; // Bounce κάτω
+                }
+                
+                // Κάτω όριο
+                if (this.y + this.radius > canvas.height - bottomMargin) {
+                    this.y = canvas.height - bottomMargin - this.radius;
+                    this.vy = -Math.abs(this.vy) * 0.6; // Bounce πάνω
+                }
+                
+                // 🚨 EXTREME EMERGENCY - Αν παρόλα αυτά η μπάλα έφυγε εκτός canvas
+                const safetyMargin = 50;
                 if (this.x < -safetyMargin || this.x > canvas.width + safetyMargin ||
                     this.y < -safetyMargin || this.y > canvas.height + safetyMargin) {
-                    console.error('⚠️ Ball escaped! Resetting to center.');
+                    console.error('⚠️ Ball escaped beyond safety margin! Position:', this.x, this.y);
                     this.reset();
                 }
             }
