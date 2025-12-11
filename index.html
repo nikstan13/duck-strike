@@ -1407,7 +1407,7 @@
 
             shoot(dragX, dragY) {
                 // Αντίστροφη κατεύθυνση (slingshot)
-                const maxDragDistance = 350; // Μέγιστη απόσταση για full power (αυξημένο από 200)
+                const maxDragDistance = 200; // Μέγιστη απόσταση για full power (συντομότερη κλίμακα)
                 const dragDistance = Math.sqrt(dragX * dragX + dragY * dragY);
                 
                 console.log('Shooting with drag distance:', dragDistance);
@@ -1736,7 +1736,7 @@
                     const playerRadius = this.selectedPlayer.radius;
                     
                     // Αν ο κέρσορας είναι μέσα στον κύκλο του παίκτη → ΑΚΥΡΩΣΗ!
-                    if (distanceFromPlayer <= playerRadius * 1.5) { // 1.5x για πιο εύκολο cancel
+                    if (distanceFromPlayer <= playerRadius * 0.9) { // 0.9x για πιο στενή cancel zone (μικρύτερο από 1.5 για μεγάλο drag)
                         console.log('❌ Shot CANCELLED! Cursor returned to player. Distance:', distanceFromPlayer.toFixed(1), '≤', (playerRadius * 1.5).toFixed(1));
                         
                         // Visual feedback: Flash effect before deselect
@@ -2640,7 +2640,7 @@
                     } else {
                         // ΕΓΚΥΡΟ σουτ - δείξε το power meter κανονικά
                         // Μέγιστη απόσταση και πραγματική δύναμη
-                        const maxDragDistance = 350; // Αυξημένο από 200
+                        const maxDragDistance = 200; // Συντομότερη κλίμακα
                         const actualDistance = Math.min(distance, maxDragDistance);
                         const power = (actualDistance / maxDragDistance) * 100; // 0-100%
                     
