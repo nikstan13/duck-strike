@@ -2784,11 +2784,11 @@
                         const dragDistance = Math.sqrt(dx * dx + dy * dy);
                         const shootPower = Math.min(dragDistance / maxDragDistance, 1.0);
                         
-                        // Υπολογισμός ταχύτητας παίκτη (ΙΔΙΑ ΚΑΤΕΥΘΥΝΣΗ ΜΕ ΤΟ ΒΕΛΟΣ!)
-                        // Χρησιμοποιεί το angle που ορίστηκε παραπάνω (line 2737)
-                        const trajectoryAngle = Math.atan2(-dy, -dx);
-                        const playerVx = Math.cos(trajectoryAngle) * shootPower * maxSpeed;
-                        const playerVy = Math.sin(trajectoryAngle) * shootPower * maxSpeed;
+                        // Υπολογισμός ΠΡΑΓΜΑΤΙΚΗΣ ταχύτητας παίκτη (όπως στο Player.shoot())
+                        const normalizedDx = dragDistance > 0 ? dx / dragDistance : 0;
+                        const normalizedDy = dragDistance > 0 ? dy / dragDistance : 0;
+                        const playerVx = -normalizedDx * shootPower * maxSpeed; // ΜΕ μείον (slingshot)
+                        const playerVy = -normalizedDy * shootPower * maxSpeed; // ΜΕ μείον (slingshot)
                         
                         // 1️⃣ TRAJECTORY ΤΟΥ ΠΑΙΚΤΗ (simulation της κίνησής του)
                         let predPlayerX = this.selectedPlayer.x;
@@ -2839,9 +2839,21 @@
                         
                         // 2️⃣ TRAJECTORY ΤΗΣ ΜΠΑΛΑΣ (μόνο αν χτυπάει)
                         if (hitsBall && hitPoint) {
-                            // Η μπάλα παίρνει την ταχύτητα του παίκτη (απλοποιημένο)
-                            let ballVx = hitPoint.vx;
-                            let ballVy = hitPoint.vy;
+                            // Υπολογισμός μεταφοράς ορμής από παίκτη σε μπάλα (όπως στο Player.checkBallCollision)
+                            const angle = Math.atan2(
+                                this.ball.y - hitPoint.y,
+                                this.ball.x - hitPoint.x
+                            );
+                            
+                            // Μεταφορά ορμής με restitution & mass ratio
+                            const restitution = 0.9;
+                            const massRatio = 0.8;
+                            const relVelocityDotNormal = hitPoint.vx * Math.cos(angle) + hitPoint.vy * Math.sin(angle);
+                            const impulse = (1 + restitution) * relVelocityDotNormal * massRatio;
+                            
+                            // Η μπάλα παίρνει ταχύτητα από τη σύγκρουση
+                            let ballVx = Math.cos(angle) * impulse;
+                            let ballVy = Math.sin(angle) * impulse;
                             let ballX = this.ball.x;
                             let ballY = this.ball.y;
                             const ballFriction = 0.97;
