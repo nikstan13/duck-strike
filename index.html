@@ -2784,15 +2784,15 @@
                         const dragDistance = Math.sqrt(dx * dx + dy * dy);
                         const shootPower = Math.min(dragDistance / maxDragDistance, 1.0);
                         
-                        // Υπολογισμός αρχικής ταχύτητας
-                        const normalizedDx = -dx / dragDistance;
-                        const normalizedDy = -dy / dragDistance;
-                        let predVx = normalizedDx * shootPower * maxSpeed;
-                        let predVy = normalizedDy * shootPower * maxSpeed;
+                        // Υπολογισμός αρχικής ταχύτητας (ΙΔΙΟ ΜΕ SHOOT!)
+                        const normalizedDx = dragDistance > 0 ? dx / dragDistance : 0;
+                        const normalizedDy = dragDistance > 0 ? dy / dragDistance : 0;
+                        let predVx = -normalizedDx * shootPower * maxSpeed; // Με μείον όπως στο shoot!
+                        let predVy = -normalizedDy * shootPower * maxSpeed; // Με μείον όπως στο shoot!
                         
-                        // Simulation της πορείας
-                        let predX = this.selectedPlayer.x;
-                        let predY = this.selectedPlayer.y;
+                        // Simulation της πορείας - ΞΕΚΙΝΑΕΙ ΑΠΟ ΤΗ ΜΠΑΛΑ
+                        let predX = this.ball.x;
+                        let predY = this.ball.y;
                         const friction = 0.97; // Από ball friction
                         const steps = 25; // Πόσα βήματα να δείξουμε (αυξημένο)
                         
