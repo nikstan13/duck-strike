@@ -376,6 +376,43 @@
             display: block;
         }
 
+        /* Friction Selector - Πάνω δεξιά */
+        #frictionSelector {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: none;
+        }
+
+        #frictionSelector.visible {
+            display: block;
+        }
+
+        #frictionSelector select {
+            padding: 10px 15px;
+            font-size: 14px;
+            font-weight: bold;
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid #333;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: all 0.3s;
+        }
+
+        #frictionSelector select:hover {
+            background: white;
+            transform: scale(1.02);
+        }
+
+        #frictionSelector label {
+            color: white;
+            font-weight: bold;
+            margin-right: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+
         /* Responsive για mobile */
         @media (max-width: 768px) {
             #backToMenuBtn {
@@ -393,6 +430,17 @@
     
     <!-- Back to Menu Button -->
     <button id="backToMenuBtn">⬅️ Back to Menu</button>
+    
+    <!-- Friction Selector -->
+    <div id="frictionSelector">
+        <label>⚙️ Friction:</label>
+        <select id="frictionSelect" onchange="changeFriction(this.value)">
+            <option value="normal">Normal (0.97 Ball / 0.96 Player)</option>
+            <option value="low">Low (0.98 Ball / 0.97 Player)</option>
+            <option value="verylow">Very Low (0.985 Ball / 0.98 Player)</option>
+            <option value="ice">Ice (0.99 Ball / 0.985 Player)</option>
+        </select>
+    </div>
     
     <!-- Multiplayer Menu -->
     <div id="menuScreen">
@@ -518,6 +566,44 @@
         let playerId = 'player_' + Math.random().toString(36).substr(2, 9);
 
         // ========================
+        // FRICTION SETTINGS
+        // ========================
+        let ballFriction = 0.97;
+        let playerFriction = 0.96;
+
+        function changeFriction(mode) {
+            switch(mode) {
+                case 'normal':
+                    ballFriction = 0.97;
+                    playerFriction = 0.96;
+                    break;
+                case 'low':
+                    ballFriction = 0.98;
+                    playerFriction = 0.97;
+                    break;
+                case 'verylow':
+                    ballFriction = 0.985;
+                    playerFriction = 0.98;
+                    break;
+                case 'ice':
+                    ballFriction = 0.99;
+                    playerFriction = 0.985;
+                    break;
+            }
+            
+            // Ενημέρωσε την τριβή στα υπάρχοντα objects
+            if (game) {
+                if (game.ball) {
+                    game.ball.friction = ballFriction;
+                }
+                game.playerTeam.forEach(p => p.friction = playerFriction);
+                game.botTeam.forEach(p => p.friction = playerFriction);
+            }
+            
+            console.log('🎮 Friction changed:', mode, '- Ball:', ballFriction, 'Player:', playerFriction);
+        }
+
+        // ========================
         // MENU FUNCTIONS
         // ========================
         function startLocalGame() {
@@ -531,6 +617,7 @@
             document.getElementById('menuScreen').classList.add('hidden');
             document.getElementById('gameCanvas').classList.add('active');
             document.getElementById('backToMenuBtn').classList.add('visible'); // Show back button
+            document.getElementById('frictionSelector').classList.add('visible'); // Show friction selector
             startGame();
         }
 
@@ -545,6 +632,7 @@
             document.getElementById('menuScreen').classList.add('hidden');
             document.getElementById('gameCanvas').classList.add('active');
             document.getElementById('backToMenuBtn').classList.add('visible'); // Show back button
+            document.getElementById('frictionSelector').classList.add('visible'); // Show friction selector
             startGame();
         }
 
@@ -563,6 +651,7 @@
             document.getElementById('gameCanvas').classList.remove('active');
             document.getElementById('menuScreen').classList.remove('hidden');
             document.getElementById('backToMenuBtn').classList.remove('visible'); // Hide back button
+            document.getElementById('frictionSelector').classList.remove('visible'); // Hide friction selector
             
             // Show main menu submenu
             document.getElementById('mainMenu').style.display = 'flex';
@@ -726,6 +815,7 @@
             document.getElementById('menuScreen').classList.add('hidden');
             document.getElementById('gameCanvas').classList.add('active');
             document.getElementById('backToMenuBtn').classList.add('visible'); // Show back button
+            document.getElementById('frictionSelector').classList.add('visible'); // Show friction selector
             startGame();
             setupMultiplayerSync();
         }
@@ -945,7 +1035,7 @@
             constructor() {
                 this.reset();
                 this.radius = 15;
-                this.friction = 0.97;  // Περισσότερη τριβή - μικρότερη απόσταση
+                this.friction = ballFriction;  // Χρησιμοποιεί το global ballFriction
                 this.firstShotAfterReset = true;  // Flag για πρώτο shot μετά reset
                 this.inGoal = false;  // Flag αν η μπάλα είναι μέσα στο τέρμα
                 this.goalType = null;  // Τύπος γκολ ('player_goal', 'bot_goal', κτλ)
@@ -1197,7 +1287,7 @@
                 this.selected = false;
                 this.vx = 0;  // Ταχύτητα
                 this.vy = 0;
-                this.friction = 0.96;  // Περισσότερη τριβή - μικρότερη απόσταση
+                this.friction = playerFriction;  // Χρησιμοποιεί το global playerFriction
                 this.moving = false;
                 this.collisionCooldown = {};  // Cooldown ανά παίκτη για να μην κολλάνε
                 this.ballCollisionTime = 0;  // Cooldown για την μπάλα
