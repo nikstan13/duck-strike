@@ -2779,6 +2779,43 @@
                         ctx.lineWidth = 8;
                         ctx.stroke();
                         
+                        // 🎯 TRAJECTORY PREDICTION - Δείχνει που θα πάει η μπάλα
+                        const maxSpeed = 25; // Από Player.shoot()
+                        const dragDistance = Math.sqrt(dx * dx + dy * dy);
+                        const shootPower = Math.min(dragDistance / maxDragDistance, 1.0);
+                        
+                        // Υπολογισμός αρχικής ταχύτητας
+                        const normalizedDx = -dx / dragDistance;
+                        const normalizedDy = -dy / dragDistance;
+                        let predVx = normalizedDx * shootPower * maxSpeed;
+                        let predVy = normalizedDy * shootPower * maxSpeed;
+                        
+                        // Simulation της πορείας
+                        let predX = this.selectedPlayer.x;
+                        let predY = this.selectedPlayer.y;
+                        const friction = 0.97; // Από ball friction
+                        const steps = 15; // Πόσα βήματα να δείξουμε
+                        
+                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                        ctx.lineWidth = 2;
+                        ctx.setLineDash([5, 10]); // Dotted line
+                        ctx.beginPath();
+                        ctx.moveTo(predX, predY);
+                        
+                        for (let i = 0; i < steps; i++) {
+                            predX += predVx;
+                            predY += predVy;
+                            predVx *= friction;
+                            predVy *= friction;
+                            
+                            // Απλό boundary check (χωρίς bounce για απλότητα)
+                            if (predX < 50 || predX > 1550 || predY < 50 || predY > 850) break;
+                            
+                            ctx.lineTo(predX, predY);
+                        }
+                        ctx.stroke();
+                        ctx.setLineDash([]); // Reset dash
+                        
                         // Δείκτης δύναμης - ΑΚΡΙΒΗΣ ποσοστό
                         ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
                         ctx.font = 'bold 32px Arial';
