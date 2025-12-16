@@ -347,11 +347,52 @@
             margin: 5px 0;
             color: #666;
         }
+
+        /* Back to Menu Button */
+        #backToMenuBtn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #333;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 10000; /* Πολύ ψηλά για να φαίνεται πάντα */
+            display: none; /* Κρυφό στο menu */
+            transition: all 0.3s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        #backToMenuBtn:hover {
+            background: white;
+            transform: scale(1.05);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.4);
+        }
+
+        #backToMenuBtn.visible {
+            display: block;
+        }
+
+        /* Responsive για mobile */
+        @media (max-width: 768px) {
+            #backToMenuBtn {
+                top: 10px;
+                left: 10px;
+                padding: 10px 20px;
+                font-size: 14px;
+            }
+        }
     </style>
 </head>
 <body>
     <!-- Floating Ducks Background -->
     <div id="floatingDucks"></div>
+    
+    <!-- Back to Menu Button -->
+    <button id="backToMenuBtn">⬅️ Back to Menu</button>
     
     <!-- Multiplayer Menu -->
     <div id="menuScreen">
@@ -489,6 +530,7 @@
             
             document.getElementById('menuScreen').classList.add('hidden');
             document.getElementById('gameCanvas').classList.add('active');
+            document.getElementById('backToMenuBtn').classList.add('visible'); // Show back button
             startGame();
         }
 
@@ -502,7 +544,41 @@
             
             document.getElementById('menuScreen').classList.add('hidden');
             document.getElementById('gameCanvas').classList.add('active');
+            document.getElementById('backToMenuBtn').classList.add('visible'); // Show back button
             startGame();
+        }
+
+        function backToMenu() {
+            // Clean up multiplayer connections
+            if (isMultiplayer && currentRoomId && database) {
+                database.ref('rooms/' + currentRoomId).remove();
+            }
+            
+            // Stop the game
+            if (game) {
+                game = null;
+            }
+            
+            // Hide game, show menu
+            document.getElementById('gameCanvas').classList.remove('active');
+            document.getElementById('menuScreen').classList.remove('hidden');
+            document.getElementById('backToMenuBtn').classList.remove('visible'); // Hide back button
+            
+            // Show main menu submenu
+            document.getElementById('mainMenu').style.display = 'flex';
+            document.getElementById('privateRoomMenu').classList.remove('show');
+            document.getElementById('waitingScreen').classList.remove('show');
+            
+            // Reset flags
+            isMultiplayer = false;
+            isLocal1v1 = false;
+            isHost = false;
+            currentRoomId = null;
+            
+            // Clear canvas
+            const canvas = document.getElementById('gameCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
 
         function showPrivateRoomMenu() {
@@ -649,6 +725,7 @@
         function startMultiplayerGame() {
             document.getElementById('menuScreen').classList.add('hidden');
             document.getElementById('gameCanvas').classList.add('active');
+            document.getElementById('backToMenuBtn').classList.add('visible'); // Show back button
             startGame();
             setupMultiplayerSync();
         }
@@ -1652,6 +1729,9 @@
                 canvas.addEventListener('touchstart', (e) => this.onTouchStart(e));
                 canvas.addEventListener('touchmove', (e) => this.onTouchMove(e));
                 canvas.addEventListener('touchend', (e) => this.onTouchEnd(e));
+                
+                // Back to Menu button listener
+                document.getElementById('backToMenuBtn').addEventListener('click', backToMenu);
             }
 
             getMousePos(e) {
