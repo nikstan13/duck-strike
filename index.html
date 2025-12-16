@@ -2780,63 +2780,93 @@
                         ctx.stroke();
                         
                         // 🎯 TRAJECTORY PREDICTION SYSTEM
-                        const maxSpeed = 25; // Από Player.shoot()
+                        const maxSpeed = 25;
                         const dragDistance = Math.sqrt(dx * dx + dy * dy);
                         const shootPower = Math.min(dragDistance / maxDragDistance, 1.0);
                         
-                        // 1️⃣ ΓΡΑΜΜΗ ΑΠΟ ΠΑΙΚΤΗ → ΜΠΑΛΑ (Δείχνει που θα χτυπήσει)
-                        ctx.strokeStyle = 'rgba(100, 200, 255, 0.6)'; // Γαλάζιο
-                        ctx.lineWidth = 2;
-                        ctx.setLineDash([5, 5]);
-                        ctx.beginPath();
-                        ctx.moveTo(this.selectedPlayer.x, this.selectedPlayer.y);
-                        ctx.lineTo(this.ball.x, this.ball.y);
-                        ctx.stroke();
-                        ctx.setLineDash([]); // Reset dash
-                        
-                        // 2️⃣ TRAJECTORY ΑΠΟ ΜΠΑΛΑ (Δείχνει που θα πάει η μπάλα μετά το χτύπημα)
-                        // Υπολογισμός ταχύτητας παίκτη προς μπάλα
-                        const playerToBallDx = this.ball.x - this.selectedPlayer.x;
-                        const playerToBallDy = this.ball.y - this.selectedPlayer.y;
-                        const playerToBallDist = Math.sqrt(playerToBallDx * playerToBallDx + playerToBallDy * playerToBallDy);
-                        
-                        // Υπολογισμός ταχύτητας παίκτη (από το shoot direction)
+                        // Υπολογισμός ταχύτητας παίκτη
                         const normalizedDx = dragDistance > 0 ? dx / dragDistance : 0;
                         const normalizedDy = dragDistance > 0 ? dy / dragDistance : 0;
                         const playerVx = -normalizedDx * shootPower * maxSpeed;
                         const playerVy = -normalizedDy * shootPower * maxSpeed;
                         
-                        // Η μπάλα θα πάρει την ταχύτητα του παίκτη (απλοποιημένο)
+                        // 1️⃣ TRAJECTORY ΤΟΥ ΠΑΙΚΤΗ (simulation της κίνησής του)
+                        let predPlayerX = this.selectedPlayer.x;
+                        let predPlayerY = this.selectedPlayer.y;
                         let predVx = playerVx;
                         let predVy = playerVy;
-                        let predX = this.ball.x;
-                        let predY = this.ball.y;
+                        const playerFriction = 0.96; // Player friction
+                        const playerRadius = this.selectedPlayer.radius;
+                        const ballRadius = this.ball.radius;
+                        let hitsBall = false;
+                        let hitPoint = null;
                         
-                        const friction = 0.97; // Ball friction
-                        const steps = 30; // Περισσότερα βήματα
-                        
-                        ctx.strokeStyle = 'rgba(255, 255, 100, 0.8)'; // Κίτρινο
-                        ctx.lineWidth = 3;
-                        ctx.setLineDash([8, 8]);
+                        ctx.strokeStyle = 'rgba(100, 200, 255, 0.7)'; // Γαλάζιο trajectory παίκτη
+                        ctx.lineWidth = 2;
+                        ctx.setLineDash([5, 5]);
                         ctx.beginPath();
-                        ctx.moveTo(predX, predY);
+                        ctx.moveTo(predPlayerX, predPlayerY);
                         
-                        for (let i = 0; i < steps; i++) {
-                            predX += predVx;
-                            predY += predVy;
-                            predVx *= friction;
-                            predVy *= friction;
+                        // Simulate player movement
+                        for (let i = 0; i < 30; i++) {
+                            predPlayerX += predVx;
+                            predPlayerY += predVy;
+                            predVx *= playerFriction;
+                            predVy *= playerFriction;
                             
-                            // Stop αν η ταχύτητα είναι πολύ μικρή
-                            if (Math.abs(predVx) < 0.5 && Math.abs(predVy) < 0.5) break;
+                            // Check collision με μπάλα
+                            const distToBall = Math.sqrt(
+                                (predPlayerX - this.ball.x) ** 2 + 
+                                (predPlayerY - this.ball.y) ** 2
+                            );
                             
-                            // Boundary check
-                            if (predX < 50 || predX > 1550 || predY < 50 || predY > 850) break;
+                            if (distToBall <= playerRadius + ballRadius && !hitsBall) {
+                                hitsBall = true;
+                                hitPoint = { x: predPlayerX, y: predPlayerY, vx: predVx, vy: predVy };
+                                break; // Stop player trajectory στο σημείο σύγκρουσης
+                            }
                             
-                            ctx.lineTo(predX, predY);
+                            // Stop αν πολύ αργά
+                            if (Math.abs(predVx) < 0.3 && Math.abs(predVy) < 0.3) break;
+                            
+                            // Boundary
+                            if (predPlayerX < 50 || predPlayerX > 1550 || predPlayerY < 50 || predPlayerY > 850) break;
+                            
+                            ctx.lineTo(predPlayerX, predPlayerY);
                         }
                         ctx.stroke();
-                        ctx.setLineDash([]); // Reset dash
+                        ctx.setLineDash([]);
+                        
+                        // 2️⃣ TRAJECTORY ΤΗΣ ΜΠΑΛΑΣ (μόνο αν χτυπάει)
+                        if (hitsBall && hitPoint) {
+                            // Η μπάλα παίρνει την ταχύτητα του παίκτη (απλοποιημένο)
+                            let ballVx = hitPoint.vx;
+                            let ballVy = hitPoint.vy;
+                            let ballX = this.ball.x;
+                            let ballY = this.ball.y;
+                            const ballFriction = 0.97;
+                            
+                            ctx.strokeStyle = 'rgba(255, 255, 100, 0.8)'; // Κίτρινο trajectory μπάλας
+                            ctx.lineWidth = 3;
+                            ctx.setLineDash([8, 8]);
+                            ctx.beginPath();
+                            ctx.moveTo(ballX, ballY);
+                            
+                            // Μόνο τα πρώτα pixels (10 steps)
+                            for (let i = 0; i < 10; i++) {
+                                ballX += ballVx;
+                                ballY += ballVy;
+                                ballVx *= ballFriction;
+                                ballVy *= ballFriction;
+                                
+                                if (Math.abs(ballVx) < 0.3 && Math.abs(ballVy) < 0.3) break;
+                                if (ballX < 50 || ballX > 1550 || ballY < 50 || ballY > 850) break;
+                                
+                                ctx.lineTo(ballX, ballY);
+                            }
+                            ctx.stroke();
+                            ctx.setLineDash([]);
+                        }
                         
                         // Δείκτης δύναμης - ΑΚΡΙΒΗΣ ποσοστό
                         ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
