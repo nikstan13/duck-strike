@@ -2784,11 +2784,11 @@
                         const dragDistance = Math.sqrt(dx * dx + dy * dy);
                         const shootPower = Math.min(dragDistance / maxDragDistance, 1.0);
                         
-                        // Υπολογισμός ταχύτητας παίκτη
-                        const normalizedDx = dragDistance > 0 ? dx / dragDistance : 0;
-                        const normalizedDy = dragDistance > 0 ? dy / dragDistance : 0;
-                        const playerVx = -normalizedDx * shootPower * maxSpeed;
-                        const playerVy = -normalizedDy * shootPower * maxSpeed;
+                        // Υπολογισμός ταχύτητας παίκτη (ΙΔΙΑ ΚΑΤΕΥΘΥΝΣΗ ΜΕ ΤΟ ΒΕΛΟΣ!)
+                        // Χρησιμοποιεί το angle που ορίστηκε παραπάνω (line 2737)
+                        const trajectoryAngle = Math.atan2(-dy, -dx);
+                        const playerVx = Math.cos(trajectoryAngle) * shootPower * maxSpeed;
+                        const playerVy = Math.sin(trajectoryAngle) * shootPower * maxSpeed;
                         
                         // 1️⃣ TRAJECTORY ΤΟΥ ΠΑΙΚΤΗ (simulation της κίνησής του)
                         let predPlayerX = this.selectedPlayer.x;
