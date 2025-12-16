@@ -2794,11 +2794,11 @@
                         let predX = this.selectedPlayer.x;
                         let predY = this.selectedPlayer.y;
                         const friction = 0.97; // Από ball friction
-                        const steps = 15; // Πόσα βήματα να δείξουμε
+                        const steps = 25; // Πόσα βήματα να δείξουμε (αυξημένο)
                         
-                        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-                        ctx.lineWidth = 2;
-                        ctx.setLineDash([5, 10]); // Dotted line
+                        ctx.strokeStyle = 'rgba(255, 255, 100, 0.8)'; // Πιο φωτεινό κίτρινο
+                        ctx.lineWidth = 3; // Πιο παχύ
+                        ctx.setLineDash([8, 8]); // Πιο μεγάλα dots
                         ctx.beginPath();
                         ctx.moveTo(predX, predY);
                         
