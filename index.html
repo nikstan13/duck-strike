@@ -2801,14 +2801,14 @@
                         let hitsBall = false;
                         let hitPoint = null;
                         
-                        ctx.strokeStyle = 'rgba(100, 200, 255, 0.7)'; // Γαλάζιο trajectory παίκτη
-                        ctx.lineWidth = 2;
-                        ctx.setLineDash([5, 5]);
+                        ctx.strokeStyle = 'rgba(100, 200, 255, 0.9)'; // Πιο φωτεινό γαλάζιο
+                        ctx.lineWidth = 4; // Πιο παχύ
+                        ctx.setLineDash([10, 10]); // Πιο μεγάλα dots
                         ctx.beginPath();
                         ctx.moveTo(predPlayerX, predPlayerY);
                         
                         // Simulate player movement
-                        for (let i = 0; i < 30; i++) {
+                        for (let i = 0; i < 50; i++) { // Περισσότερα steps
                             predPlayerX += predVx;
                             predPlayerY += predVy;
                             predVx *= playerFriction;
@@ -2846,14 +2846,14 @@
                             let ballY = this.ball.y;
                             const ballFriction = 0.97;
                             
-                            ctx.strokeStyle = 'rgba(255, 255, 100, 0.8)'; // Κίτρινο trajectory μπάλας
-                            ctx.lineWidth = 3;
-                            ctx.setLineDash([8, 8]);
+                            ctx.strokeStyle = 'rgba(255, 255, 100, 1.0)'; // Πολύ φωτεινό κίτρινο
+                            ctx.lineWidth = 5; // Πολύ παχύ
+                            ctx.setLineDash([10, 10]);
                             ctx.beginPath();
                             ctx.moveTo(ballX, ballY);
                             
-                            // Μόνο τα πρώτα pixels (10 steps)
-                            for (let i = 0; i < 10; i++) {
+                            // Μόνο τα πρώτα pixels (20 steps αντί για 10)
+                            for (let i = 0; i < 20; i++) {
                                 ballX += ballVx;
                                 ballY += ballVy;
                                 ballVx *= ballFriction;
