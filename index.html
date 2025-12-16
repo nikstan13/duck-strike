@@ -2781,14 +2781,18 @@
                         
                         // 🎯 TRAJECTORY PREDICTION SYSTEM
                         const maxSpeed = 25;
-                        const dragDistance = Math.sqrt(dx * dx + dy * dy);
+                        
+                        // ΣΩΣΤΑ dragX/dragY (όπως στο onMouseUp - ΧΩΡΙΣ αντιστροφή!)
+                        const dragX = this.currentDrag.x - this.dragStart.x;
+                        const dragY = this.currentDrag.y - this.dragStart.y;
+                        const dragDistance = Math.sqrt(dragX * dragX + dragY * dragY);
                         const shootPower = Math.min(dragDistance / maxDragDistance, 1.0);
                         
                         // Υπολογισμός ΠΡΑΓΜΑΤΙΚΗΣ ταχύτητας παίκτη (όπως στο Player.shoot())
-                        const normalizedDx = dragDistance > 0 ? dx / dragDistance : 0;
-                        const normalizedDy = dragDistance > 0 ? dy / dragDistance : 0;
-                        const playerVx = -normalizedDx * shootPower * maxSpeed; // ΜΕ μείον (slingshot)
-                        const playerVy = -normalizedDy * shootPower * maxSpeed; // ΜΕ μείον (slingshot)
+                        const dirX = dragDistance > 0 ? dragX / dragDistance : 0;
+                        const dirY = dragDistance > 0 ? dragY / dragDistance : 0;
+                        const playerVx = -dirX * shootPower * maxSpeed; // ΜΕ μείον (slingshot)
+                        const playerVy = -dirY * shootPower * maxSpeed; // ΜΕ μείον (slingshot)
                         
                         // 1️⃣ TRAJECTORY ΤΟΥ ΠΑΙΚΤΗ (simulation της κίνησής του)
                         let predPlayerX = this.selectedPlayer.x;
