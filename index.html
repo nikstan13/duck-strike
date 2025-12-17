@@ -2971,14 +2971,33 @@
                             let ballY = hitPoint.ballY;
                             const ballFriction = 0.97;
                             
+                            // Υπολογισμός απόστασης από τέρμα αντιπάλου για προσαρμογή μήκους trajectory
+                            // Αριστερό τέρμα: x = 0-50, Δεξί τέρμα: x = 1550-1600
+                            const isRedTeam = this.selectedPlayer.color === '#ff3420'; // Κόκκινη ομάδα (αριστερά)
+                            const opponentGoalX = isRedTeam ? 1600 : 0; // Τέρμα αντιπάλου
+                            const distanceToGoal = Math.abs(hitPoint.ballX - opponentGoalX);
+                            
+                            // Χωρίζουμε το γήπεδο σε ζώνες:
+                            // Κοντά στο τέρμα (0-400px): 5-8 steps
+                            // Μέση απόσταση (400-800px): 8-15 steps
+                            // Μακριά (800-1600px): 15-25 steps
+                            let maxSteps;
+                            if (distanceToGoal < 400) {
+                                maxSteps = Math.floor(5 + (distanceToGoal / 400) * 3); // 5-8
+                            } else if (distanceToGoal < 800) {
+                                maxSteps = Math.floor(8 + ((distanceToGoal - 400) / 400) * 7); // 8-15
+                            } else {
+                                maxSteps = Math.floor(15 + ((distanceToGoal - 800) / 800) * 10); // 15-25
+                            }
+                            
                             ctx.strokeStyle = 'rgba(255, 255, 100, 1.0)'; // Πολύ φωτεινό κίτρινο
                             ctx.lineWidth = 5; // Πολύ παχύ
                             ctx.setLineDash([10, 10]);
                             ctx.beginPath();
                             ctx.moveTo(ballX, ballY);
                             
-                            // Μόνο τα πρώτα pixels (20 steps αντί για 10)
-                            for (let i = 0; i < 20; i++) {
+                            // Προσαρμοσμένο μήκος trajectory ανάλογα με απόσταση από τέρμα
+                            for (let i = 0; i < maxSteps; i++) {
                                 ballX += ballVx;
                                 ballY += ballVy;
                                 ballVx *= ballFriction;
