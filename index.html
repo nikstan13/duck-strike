@@ -2909,12 +2909,13 @@
                             predVx *= playerFriction;
                             predVy *= playerFriction;
                             
-                            // Check collision με μπάλα (ίδιος έλεγχος με το Player.checkCollision)
+                            // Check collision με μπάλα (λίγο πιο χαλαρό από το Player.checkCollision για prediction)
                             const distToBall = Math.sqrt(
                                 (predPlayerX - this.ball.x) ** 2 + 
                                 (predPlayerY - this.ball.y) ** 2
                             );
-                            const minDistance = playerRadius + ballRadius;
+                            // Αυξάνουμε την απόσταση κατά 15% για να δείχνει το trajectory νωρίτερα
+                            const minDistance = (playerRadius + ballRadius) * 1.15;
                             
                             if (distToBall < minDistance && !hitsBall) {
                                 hitsBall = true;
