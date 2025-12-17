@@ -2890,9 +2890,17 @@
                         let predPlayerY = this.selectedPlayer.y;
                         let predVx = playerVx;
                         let predVy = playerVy;
-                        const playerFriction = 0.96; // Player friction
+                        const simulationFriction = playerFriction; // Χρησιμοποιούμε το ΠΡΑΓΜΑΤΙΚΟ friction
                         const playerRadius = this.selectedPlayer.radius;
                         const ballRadius = this.ball.radius;
+                        
+                        // Προσομοίωση κίνησης μπάλας (αν κινείται)
+                        let predBallX = this.ball.x;
+                        let predBallY = this.ball.y;
+                        let predBallVx = this.ball.vx;
+                        let predBallVy = this.ball.vy;
+                        const ballFrictionSim = ballFriction;
+                        
                         let hitsBall = false;
                         let hitPoint = null;
                         
@@ -2904,22 +2912,30 @@
                         
                         // Simulate player movement
                         for (let i = 0; i < 50; i++) { // Περισσότερα steps
+                            // Κίνηση παίκτη
                             predPlayerX += predVx;
                             predPlayerY += predVy;
-                            predVx *= playerFriction;
-                            predVy *= playerFriction;
+                            predVx *= simulationFriction;
+                            predVy *= simulationFriction;
                             
-                            // Check collision με μπάλα (πολύ χαλαρό για να καλύπτει όλες τις περιπτώσεις)
+                            // Κίνηση μπάλας (αν κινείται)
+                            predBallX += predBallVx;
+                            predBallY += predBallVy;
+                            predBallVx *= ballFrictionSim;
+                            predBallVy *= ballFrictionSim;
+                            if (Math.abs(predBallVx) < 0.1) predBallVx = 0;
+                            if (Math.abs(predBallVy) < 0.1) predBallVy = 0;
+                            
+                            // Check collision με μπάλα (ίδια ακριβώς λογική με Player.checkCollision)
                             const distToBall = Math.sqrt(
-                                (predPlayerX - this.ball.x) ** 2 + 
-                                (predPlayerY - this.ball.y) ** 2
+                                (predPlayerX - predBallX) ** 2 + 
+                                (predPlayerY - predBallY) ** 2
                             );
-                            // Διπλασιάζουμε την απόσταση για να δείχνει το trajectory πολύ νωρίτερα
-                            const minDistance = (playerRadius + ballRadius) * 2.0;
+                            const minDistance = playerRadius + ballRadius;
                             
                             if (distToBall < minDistance && !hitsBall) {
                                 hitsBall = true;
-                                hitPoint = { x: predPlayerX, y: predPlayerY, vx: predVx, vy: predVy };
+                                hitPoint = { x: predPlayerX, y: predPlayerY, vx: predVx, vy: predVy, ballX: predBallX, ballY: predBallY };
                                 break; // Stop player trajectory στο σημείο σύγκρουσης
                             }
                             
@@ -2936,10 +2952,10 @@
                         
                         // 2️⃣ TRAJECTORY ΤΗΣ ΜΠΑΛΑΣ (μόνο αν χτυπάει)
                         if (hitsBall && hitPoint) {
-                            // Υπολογισμός μεταφοράς ορμής από παίκτη σε μπάλα (όπως στο Player.checkBallCollision)
+                            // Υπολογισμός μεταφοράς ορμής από παίκτη σε μπάλα (χρησιμοποιώντας τη νέα θέση μπάλας)
                             const angle = Math.atan2(
-                                this.ball.y - hitPoint.y,
-                                this.ball.x - hitPoint.x
+                                hitPoint.ballY - hitPoint.y,
+                                hitPoint.ballX - hitPoint.x
                             );
                             
                             // Μεταφορά ορμής με restitution & mass ratio
@@ -2951,8 +2967,8 @@
                             // Η μπάλα παίρνει ταχύτητα από τη σύγκρουση
                             let ballVx = Math.cos(angle) * impulse;
                             let ballVy = Math.sin(angle) * impulse;
-                            let ballX = this.ball.x;
-                            let ballY = this.ball.y;
+                            let ballX = hitPoint.ballX;  // Αρχίζει από τη νέα θέση της μπάλας
+                            let ballY = hitPoint.ballY;
                             const ballFriction = 0.97;
                             
                             ctx.strokeStyle = 'rgba(255, 255, 100, 1.0)'; // Πολύ φωτεινό κίτρινο
