@@ -2909,13 +2909,14 @@
                             predVx *= playerFriction;
                             predVy *= playerFriction;
                             
-                            // Check collision με μπάλα
+                            // Check collision με μπάλα (ίδιος έλεγχος με το Player.checkCollision)
                             const distToBall = Math.sqrt(
                                 (predPlayerX - this.ball.x) ** 2 + 
                                 (predPlayerY - this.ball.y) ** 2
                             );
+                            const minDistance = playerRadius + ballRadius;
                             
-                            if (distToBall <= playerRadius + ballRadius && !hitsBall) {
+                            if (distToBall < minDistance && !hitsBall) {
                                 hitsBall = true;
                                 hitPoint = { x: predPlayerX, y: predPlayerY, vx: predVx, vy: predVy };
                                 break; // Stop player trajectory στο σημείο σύγκρουσης
