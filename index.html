@@ -435,7 +435,6 @@
     <div id="frictionSelector">
         <label>⚙️ Friction:</label>
         <select id="frictionSelect" onchange="changeFriction(this.value)">
-            <option value="normal">Normal (0.97 Ball / 0.96 Player)</option>
             <option value="low">Low (0.98 Ball / 0.97 Player)</option>
             <option value="verylow">Very Low (0.985 Ball / 0.98 Player)</option>
             <option value="ice">Ice (0.99 Ball / 0.985 Player)</option>
@@ -568,8 +567,8 @@
         // ========================
         // FRICTION SETTINGS
         // ========================
-        let ballFriction = 0.97;
-        let playerFriction = 0.96;
+        let ballFriction = 0.98;  // Default: Low friction
+        let playerFriction = 0.97;
 
         function changeFriction(mode) {
             switch(mode) {
@@ -1087,11 +1086,13 @@
                 if (!this.inGoal) {  // Μόνο αν ΔΕΝ είναι στο τέρμα
                     const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
                     
-                    if (speed > 0.1) {
+                    // Αυξημένο threshold (από 0.1 σε 0.6) για πιο απότομη στάση
+                    if (speed > 0.6) {
                         const decayFactor = Math.pow(this.friction, 1.0);  // Γραμμική απόσβεση (από 1.2)
                         this.vx *= decayFactor;
                         this.vy *= decayFactor;
                     } else {
+                        // Απότομη στάση όταν η ταχύτητα < 0.6
                         this.vx = 0;
                         this.vy = 0;
                     }
