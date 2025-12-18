@@ -412,6 +412,78 @@
             margin-right: 10px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
         }
+        
+        /* Abilities UI */
+        #abilitiesUI {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10000;
+            display: none;
+            gap: 15px;
+        }
+        
+        #abilitiesUI.visible {
+            display: flex;
+        }
+        
+        .ability-button {
+            padding: 15px 25px;
+            font-size: 16px;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: 3px solid white;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.4);
+            transition: all 0.3s;
+            position: relative;
+            min-width: 120px;
+        }
+        
+        .ability-button:hover:not(.disabled) {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+        }
+        
+        .ability-button:active:not(.disabled) {
+            transform: translateY(0) scale(0.98);
+        }
+        
+        .ability-button.active {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            animation: pulse 0.5s ease-in-out;
+        }
+        
+        .ability-button.disabled {
+            background: #555;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
+        .ability-count {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ff3420;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            border: 2px solid white;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
 
         /* Responsive για mobile */
         @media (max-width: 768px) {
@@ -420,6 +492,12 @@
                 left: 10px;
                 padding: 10px 20px;
                 font-size: 14px;
+            }
+            
+            .ability-button {
+                padding: 12px 20px;
+                font-size: 14px;
+                min-width: 100px;
             }
         }
     </style>
@@ -439,6 +517,14 @@
             <option value="verylow">Very Low (0.985 Ball / 0.98 Player)</option>
             <option value="ice">Ice (0.99 Ball / 0.985 Player)</option>
         </select>
+    </div>
+    
+    <!-- Abilities UI -->
+    <div id="abilitiesUI">
+        <button id="curveShotBtn" class="ability-button" onclick="activateCurveShot()">
+            🌀 Curve Shot
+            <span class="ability-count" id="curveShotCount">3</span>
+        </button>
     </div>
     
     <!-- Multiplayer Menu -->
@@ -601,6 +687,60 @@
             
             console.log('🎮 Friction changed:', mode, '- Ball:', ballFriction, 'Player:', playerFriction);
         }
+        
+        // ========================
+        // ABILITIES SYSTEM
+        // ========================
+        function activateCurveShot() {
+            if (!game || !game.selectedPlayer) {
+                console.log('❌ No player selected');
+                return;
+            }
+            
+            const player = game.selectedPlayer;
+            
+            // Έλεγχος αν έχει απομείνει χρήσεις
+            if (player.abilities.curveShot <= 0) {
+                console.log('❌ No curve shots remaining');
+                return;
+            }
+            
+            // Έλεγχος αν ήδη είναι ενεργό
+            if (player.activeCurveShot) {
+                // Απενεργοποίηση
+                player.activeCurveShot = false;
+                updateAbilitiesUI();
+                console.log('❌ Curve shot deactivated');
+                return;
+            }
+            
+            // Ενεργοποίηση
+            player.activeCurveShot = true;
+            updateAbilitiesUI();
+            console.log('✅ Curve shot activated! Hit the ball to apply curve effect.');
+        }
+        
+        function updateAbilitiesUI() {
+            if (!game || !game.selectedPlayer) return;
+            
+            const player = game.selectedPlayer;
+            const btn = document.getElementById('curveShotBtn');
+            const count = document.getElementById('curveShotCount');
+            
+            // Update count
+            count.textContent = player.abilities.curveShot;
+            
+            // Update button state
+            if (player.abilities.curveShot <= 0) {
+                btn.classList.add('disabled');
+                btn.classList.remove('active');
+            } else if (player.activeCurveShot) {
+                btn.classList.add('active');
+                btn.classList.remove('disabled');
+            } else {
+                btn.classList.remove('active', 'disabled');
+            }
+        }
 
         // ========================
         // MENU FUNCTIONS
@@ -617,6 +757,7 @@
             document.getElementById('gameCanvas').classList.add('active');
             document.getElementById('backToMenuBtn').classList.add('visible'); // Show back button
             document.getElementById('frictionSelector').classList.add('visible'); // Show friction selector
+            document.getElementById('abilitiesUI').classList.add('visible'); // Show abilities UI
             startGame();
         }
 
@@ -632,6 +773,7 @@
             document.getElementById('gameCanvas').classList.add('active');
             document.getElementById('backToMenuBtn').classList.add('visible'); // Show back button
             document.getElementById('frictionSelector').classList.add('visible'); // Show friction selector
+            document.getElementById('abilitiesUI').classList.add('visible'); // Show abilities UI
             startGame();
         }
 
@@ -815,6 +957,7 @@
             document.getElementById('gameCanvas').classList.add('active');
             document.getElementById('backToMenuBtn').classList.add('visible'); // Show back button
             document.getElementById('frictionSelector').classList.add('visible'); // Show friction selector
+            document.getElementById('abilitiesUI').classList.add('visible'); // Show abilities UI
             startGame();
             setupMultiplayerSync();
         }
@@ -1039,6 +1182,10 @@
                 this.inGoal = false;  // Flag αν η μπάλα είναι μέσα στο τέρμα
                 this.goalType = null;  // Τύπος γκολ ('player_goal', 'bot_goal', κτλ)
                 this.goalTime = 0;  // Χρόνος που μπήκε γκολ
+                
+                // Curve Shot Effect
+                this.curveForce = 0;  // Δύναμη καμπύλης (-1 έως 1)
+                this.curveDecay = 0.97;  // Πόσο γρήγορα εξασθενεί το curve
             }
 
             reset() {
@@ -1077,6 +1224,26 @@
                 for (let i = 0; i < substeps; i++) {
                     this.x += this.vx / substeps;
                     this.y += this.vy / substeps;
+                    
+                    // Curve Shot Effect - προσθέτει καμπύλη στην τροχιά
+                    if (Math.abs(this.curveForce) > 0.01) {
+                        // Η curveForce προσθέτει κάθετη δύναμη στην κατεύθυνση κίνησης
+                        const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                        if (speed > 0.5) {
+                            // Κάθετο vector στην κατεύθυνση κίνησης
+                            const perpX = -this.vy / speed;
+                            const perpY = this.vx / speed;
+                            
+                            // Προσθήκη curve force
+                            this.vx += perpX * this.curveForce * 0.3;
+                            this.vy += perpY * this.curveForce * 0.3;
+                            
+                            // Decay του curve effect
+                            this.curveForce *= this.curveDecay;
+                        } else {
+                            this.curveForce = 0;
+                        }
+                    }
                     
                     // Έλεγχος ορίων ΜΕΣΑ στο substep loop για πιο ακριβή detection
                     this.checkBoundaries();
@@ -1296,6 +1463,12 @@
                 this.relocateTarget = null;  // Προορισμός μετακίνησης
                 this.relocateStartTime = 0;  // Χρόνος έναρξης animation
                 this.relocateStartPos = null;  // Αρχική θέση animation
+                
+                // Abilities System
+                this.abilities = {
+                    curveShot: 3  // Σουτ με φάλτσο - 3 χρήσεις ανά παιχνίδι
+                };
+                this.activeCurveShot = false;  // Flag για ενεργό curve shot
             }
 
             update() {
@@ -1564,6 +1737,19 @@
                     // Εφαρμογή impulse στη μπάλα
                     ball.vx += Math.cos(angle) * impulse;
                     ball.vy += Math.sin(angle) * impulse;
+                    
+                    // Αν ο παίκτης έχει ενεργοποιήσει το Curve Shot
+                    if (this.activeCurveShot) {
+                        // Προσθήκη curve effect στη μπάλα
+                        const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+                        ball.curveForce = speed * 0.15;  // Το curve είναι ανάλογο της ταχύτητας
+                        
+                        // Απενεργοποίηση του ability
+                        this.activeCurveShot = false;
+                        this.abilities.curveShot--;
+                        
+                        console.log(`🌀 Curve Shot activated! Remaining: ${this.abilities.curveShot}`);
+                    }
                 }
             }
 
@@ -1868,6 +2054,7 @@
                         this.selectedPlayer = player;
                         player.selected = true;
                         this.dragStart = { x: player.x, y: player.y };
+                        updateAbilitiesUI(); // Update UI when player is selected
                         console.log('Selected player at:', player.x, player.y);
                         break;
                     }
