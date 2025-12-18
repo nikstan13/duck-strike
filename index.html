@@ -1184,8 +1184,10 @@
                 this.goalTime = 0;  // Χρόνος που μπήκε γκολ
                 
                 // Curve Shot Effect
-                this.curveForce = 0;  // Δύναμη καμπύλης (-1 έως 1)
+                this.curveForce = 0;  // Δύναμη καμπύλης
                 this.curveDecay = 0.97;  // Πόσο γρήγορα εξασθενεί το curve
+                this.curveDirectionX = 0;  // Custom curve direction X
+                this.curveDirectionY = 0;  // Custom curve direction Y
             }
 
             reset() {
@@ -1227,21 +1229,27 @@
                     
                     // Curve Shot Effect - προσθέτει καμπύλη στην τροχιά
                     if (Math.abs(this.curveForce) > 0.01) {
-                        // Η curveForce προσθέτει κάθετη δύναμη στην κατεύθυνση κίνησης
                         const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
                         if (speed > 0.5) {
-                            // Κάθετο vector στην κατεύθυνση κίνησης
-                            const perpX = -this.vy / speed;
-                            const perpY = this.vx / speed;
-                            
-                            // Προσθήκη curve force
-                            this.vx += perpX * this.curveForce * 0.3;
-                            this.vy += perpY * this.curveForce * 0.3;
+                            // Αν υπάρχει custom direction, χρησιμοποίησέ την
+                            if (Math.abs(this.curveDirectionX) > 0.01 || Math.abs(this.curveDirectionY) > 0.01) {
+                                // Custom curve direction από το drag του παίκτη
+                                this.vx += this.curveDirectionX * this.curveForce * 0.4;
+                                this.vy += this.curveDirectionY * this.curveForce * 0.4;
+                            } else {
+                                // Auto curve - κάθετο στην κατεύθυνση κίνησης
+                                const perpX = -this.vy / speed;
+                                const perpY = this.vx / speed;
+                                this.vx += perpX * this.curveForce * 0.3;
+                                this.vy += perpY * this.curveForce * 0.3;
+                            }
                             
                             // Decay του curve effect
                             this.curveForce *= this.curveDecay;
                         } else {
                             this.curveForce = 0;
+                            this.curveDirectionX = 0;
+                            this.curveDirectionY = 0;
                         }
                     }
                     
@@ -1739,16 +1747,33 @@
                     ball.vy += Math.sin(angle) * impulse;
                     
                     // Αν ο παίκτης έχει ενεργοποιήσει το Curve Shot
-                    if (this.activeCurveShot) {
-                        // Προσθήκη curve effect στη μπάλα
+                    if (this.activeCurveShot && this.pendingCurve) {
+                        // Χρήση του custom curve που όρισε ο παίκτης
                         const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
-                        ball.curveForce = speed * 0.15;  // Το curve είναι ανάλογο της ταχύτητας
+                        const curveStrength = this.pendingCurve.strength;
+                        const curveDirX = this.pendingCurve.directionX;
+                        const curveDirY = this.pendingCurve.directionY;
+                        
+                        // Εφαρμογή curve force στην κατεύθυνση που όρισε ο παίκτης
+                        ball.curveForce = speed * curveStrength * 0.2;
+                        ball.curveDirectionX = curveDirX;
+                        ball.curveDirectionY = curveDirY;
                         
                         // Απενεργοποίηση του ability
                         this.activeCurveShot = false;
+                        this.pendingCurve = null;
                         this.abilities.curveShot--;
                         
-                        console.log(`🌀 Curve Shot activated! Remaining: ${this.abilities.curveShot}`);
+                        console.log(`🌀 Curve Shot with custom direction! Strength: ${curveStrength.toFixed(2)}, Remaining: ${this.abilities.curveShot}`);
+                    } else if (this.activeCurveShot) {
+                        // Fallback: Αυτόματο curve (αν δεν έγινε adjustment)
+                        const speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);
+                        ball.curveForce = speed * 0.15;
+                        
+                        this.activeCurveShot = false;
+                        this.abilities.curveShot--;
+                        
+                        console.log(`🌀 Curve Shot (auto)! Remaining: ${this.abilities.curveShot}`);
                     }
                 }
             }
@@ -2140,6 +2165,55 @@
                         this.dragStart = null;
                         this.currentDrag = null;
                         return; // Return χωρίς shoot - μπορείς να κάνεις άλλο click!
+                    }
+                    
+                    // ✅ VALID DRAG - Proceed with shot
+                    
+                    // Αν έχει ενεργοποιημένο το Curve Shot, περίμενε για curve adjustment
+                    if (this.selectedPlayer.activeCurveShot && !this.selectedPlayer.curveAdjusting) {
+                        // Αποθήκευσε τη δύναμη του shot και μπες σε curve adjustment mode
+                        this.selectedPlayer.shotPower = { dragX, dragY };
+                        this.selectedPlayer.curveAdjusting = true;
+                        this.dragStart = { x: this.selectedPlayer.x, y: this.selectedPlayer.y }; // Reset drag start
+                        this.currentDrag = null;
+                        console.log('🌀 Curve adjustment mode - drag to set curve direction');
+                        return; // Δεν κάνουμε shoot ακόμα
+                    }
+                    
+                    // Αν είμαστε σε curve adjustment mode
+                    if (this.selectedPlayer.curveAdjusting) {
+                        // Υπολογισμός curve direction από το δεύτερο drag
+                        const curveDragX = pos.x - this.dragStart.x;
+                        const curveDragY = pos.y - this.dragStart.y;
+                        const curveDistance = Math.sqrt(curveDragX * curveDragX + curveDragY * curveDragY);
+                        
+                        // Όσο πιο μακριά τραβάς, τόσο πιο δυνατό το curve
+                        const maxCurveDrag = 150;
+                        const curveStrength = Math.min(curveDistance / maxCurveDrag, 1.0);
+                        
+                        // Κατεύθυνση curve (normalized)
+                        let curveDirectionX = curveDistance > 10 ? curveDragX / curveDistance : 0;
+                        let curveDirectionY = curveDistance > 10 ? curveDragY / curveDistance : 0;
+                        
+                        // Αποθήκευσε το curve για να εφαρμοστεί στο collision
+                        this.selectedPlayer.pendingCurve = {
+                            strength: curveStrength,
+                            directionX: curveDirectionX,
+                            directionY: curveDirectionY
+                        };
+                        
+                        console.log('🌀 Curve set:', curveStrength.toFixed(2), 'Direction:', curveDirectionX.toFixed(2), curveDirectionY.toFixed(2));
+                        
+                        // Τώρα κάνε το shot με την αποθηκευμένη δύναμη
+                        const { dragX: savedDragX, dragY: savedDragY } = this.selectedPlayer.shotPower;
+                        this.selectedPlayer.shoot(savedDragX, savedDragY);
+                        
+                        // Reset curve adjustment mode
+                        this.selectedPlayer.curveAdjusting = false;
+                        this.selectedPlayer.shotPower = null;
+                    } else {
+                        // Κανονικό shot χωρίς curve
+                        this.selectedPlayer.shoot(dragX, dragY);
                     }
                     
                     // Εκτόξευση με slingshot mechanics
@@ -3057,7 +3131,80 @@
                         ctx.lineWidth = 8;
                         ctx.stroke();
                         
-                        // 🎯 TRAJECTORY PREDICTION SYSTEM
+                        // � CURVE ADJUSTMENT MODE VISUAL
+                        if (this.selectedPlayer.curveAdjusting) {
+                            // Σχεδίασε ειδική γραμμή για curve adjustment
+                            ctx.save();
+                            
+                            // Κύκλος γύρω από παίκτη για curve adjustment zone
+                            ctx.beginPath();
+                            ctx.arc(this.selectedPlayer.x, this.selectedPlayer.y, this.selectedPlayer.radius + 15, 0, Math.PI * 2);
+                            ctx.strokeStyle = 'rgba(255, 100, 255, 0.8)'; // Ροζ/Μωβ για curve
+                            ctx.lineWidth = 4;
+                            ctx.setLineDash([5, 5]);
+                            ctx.stroke();
+                            ctx.setLineDash([]);
+                            
+                            // Curve direction arrow
+                            const curveDx = this.currentDrag.x - this.dragStart.x;
+                            const curveDy = this.currentDrag.y - this.dragStart.y;
+                            const curveDistance = Math.sqrt(curveDx * curveDx + curveDy * curveDy);
+                            
+                            if (curveDistance > 10) {
+                                const curveAngle = Math.atan2(curveDy, curveDx);
+                                const curveArrowLength = Math.min(curveDistance, 150);
+                                const curveArrowX = this.selectedPlayer.x + Math.cos(curveAngle) * curveArrowLength;
+                                const curveArrowY = this.selectedPlayer.y + Math.sin(curveAngle) * curveArrowLength;
+                                
+                                // Curve arrow με gradient
+                                const curveGradient = ctx.createLinearGradient(
+                                    this.selectedPlayer.x, this.selectedPlayer.y,
+                                    curveArrowX, curveArrowY
+                                );
+                                curveGradient.addColorStop(0, 'rgba(255, 100, 255, 1)');
+                                curveGradient.addColorStop(1, 'rgba(200, 50, 255, 1)');
+                                
+                                ctx.beginPath();
+                                ctx.moveTo(this.selectedPlayer.x, this.selectedPlayer.y);
+                                ctx.lineTo(curveArrowX, curveArrowY);
+                                ctx.strokeStyle = curveGradient;
+                                ctx.lineWidth = 6;
+                                ctx.stroke();
+                                
+                                // Arrow head
+                                const curveHeadSize = 15;
+                                ctx.beginPath();
+                                ctx.moveTo(curveArrowX, curveArrowY);
+                                ctx.lineTo(
+                                    curveArrowX - curveHeadSize * Math.cos(curveAngle - Math.PI / 6),
+                                    curveArrowY - curveHeadSize * Math.sin(curveAngle - Math.PI / 6)
+                                );
+                                ctx.moveTo(curveArrowX, curveArrowY);
+                                ctx.lineTo(
+                                    curveArrowX - curveHeadSize * Math.cos(curveAngle + Math.PI / 6),
+                                    curveArrowY - curveHeadSize * Math.sin(curveAngle + Math.PI / 6)
+                                );
+                                ctx.strokeStyle = 'rgba(200, 50, 255, 1)';
+                                ctx.lineWidth = 6;
+                                ctx.stroke();
+                                
+                                // Text: "Curve Strength"
+                                const curveStrength = Math.min(curveDistance / 150, 1.0) * 100;
+                                ctx.fillStyle = 'rgba(255, 100, 255, 0.95)';
+                                ctx.font = 'bold 24px Arial';
+                                ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+                                ctx.lineWidth = 3;
+                                ctx.strokeText(`🌀 Curve: ${curveStrength.toFixed(0)}%`, this.selectedPlayer.x - 60, this.selectedPlayer.y - 50);
+                                ctx.fillText(`🌀 Curve: ${curveStrength.toFixed(0)}%`, this.selectedPlayer.x - 60, this.selectedPlayer.y - 50);
+                            }
+                            
+                            ctx.restore();
+                            
+                            // Δεν δείχνουμε trajectory στο curve adjustment mode
+                            return;
+                        }
+                        
+                        // �🎯 TRAJECTORY PREDICTION SYSTEM
                         const maxSpeed = 25;
                         
                         // ΣΩΣΤΑ dragX/dragY (όπως στο onMouseUp - ΧΩΡΙΣ αντιστροφή!)
