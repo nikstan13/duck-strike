@@ -688,53 +688,53 @@
             console.log('🎮 Friction changed:', mode, '- Ball:', ballFriction, 'Player:', playerFriction);
         }
         
+        // Global curve shot state
+        let curveShotActive = false;
+        let curveShotPoints = null; // Θα κρατάει τα 3 σημεία του curve
+        
         // ========================
         // ABILITIES SYSTEM
         // ========================
         function activateCurveShot() {
-            if (!game || !game.selectedPlayer) {
-                console.log('❌ No player selected');
+            if (!game) {
+                console.log('❌ Game not started');
                 return;
             }
             
-            const player = game.selectedPlayer;
+            // Toggle curve shot mode
+            curveShotActive = !curveShotActive;
             
-            // Έλεγχος αν έχει απομείνει χρήσεις
-            if (player.abilities.curveShot <= 0) {
-                console.log('❌ No curve shots remaining');
-                return;
+            if (curveShotActive) {
+                console.log('✅ Curve shot mode ENABLED - Shoot to see trajectory with curve points');
+            } else {
+                console.log('❌ Curve shot mode DISABLED');
+                curveShotPoints = null; // Reset points
             }
             
-            // Έλεγχος αν ήδη είναι ενεργό
-            if (player.activeCurveShot) {
-                // Απενεργοποίηση
-                player.activeCurveShot = false;
-                updateAbilitiesUI();
-                console.log('❌ Curve shot deactivated');
-                return;
-            }
-            
-            // Ενεργοποίηση
-            player.activeCurveShot = true;
             updateAbilitiesUI();
-            console.log('✅ Curve shot activated! Hit the ball to apply curve effect.');
         }
         
         function updateAbilitiesUI() {
-            if (!game || !game.selectedPlayer) return;
-            
-            const player = game.selectedPlayer;
             const btn = document.getElementById('curveShotBtn');
             const count = document.getElementById('curveShotCount');
             
+            // Get current player's remaining shots
+            let remainingShots = 3;
+            if (game && game.selectedPlayer) {
+                remainingShots = game.selectedPlayer.abilities.curveShot;
+            } else if (game && game.playerTeam && game.playerTeam.length > 0) {
+                // Use first player as reference
+                remainingShots = game.playerTeam[0].abilities.curveShot;
+            }
+            
             // Update count
-            count.textContent = player.abilities.curveShot;
+            count.textContent = remainingShots;
             
             // Update button state
-            if (player.abilities.curveShot <= 0) {
+            if (remainingShots <= 0) {
                 btn.classList.add('disabled');
                 btn.classList.remove('active');
-            } else if (player.activeCurveShot) {
+            } else if (curveShotActive) {
                 btn.classList.add('active');
                 btn.classList.remove('disabled');
             } else {
@@ -2169,54 +2169,7 @@
                     
                     // ✅ VALID DRAG - Proceed with shot
                     
-                    // Αν έχει ενεργοποιημένο το Curve Shot, περίμενε για curve adjustment
-                    if (this.selectedPlayer.activeCurveShot && !this.selectedPlayer.curveAdjusting) {
-                        // Αποθήκευσε τη δύναμη του shot και μπες σε curve adjustment mode
-                        this.selectedPlayer.shotPower = { dragX, dragY };
-                        this.selectedPlayer.curveAdjusting = true;
-                        this.dragStart = { x: this.selectedPlayer.x, y: this.selectedPlayer.y }; // Reset drag start
-                        this.currentDrag = null;
-                        console.log('🌀 Curve adjustment mode - drag to set curve direction');
-                        return; // Δεν κάνουμε shoot ακόμα
-                    }
-                    
-                    // Αν είμαστε σε curve adjustment mode
-                    if (this.selectedPlayer.curveAdjusting) {
-                        // Υπολογισμός curve direction από το δεύτερο drag
-                        const curveDragX = pos.x - this.dragStart.x;
-                        const curveDragY = pos.y - this.dragStart.y;
-                        const curveDistance = Math.sqrt(curveDragX * curveDragX + curveDragY * curveDragY);
-                        
-                        // Όσο πιο μακριά τραβάς, τόσο πιο δυνατό το curve
-                        const maxCurveDrag = 150;
-                        const curveStrength = Math.min(curveDistance / maxCurveDrag, 1.0);
-                        
-                        // Κατεύθυνση curve (normalized)
-                        let curveDirectionX = curveDistance > 10 ? curveDragX / curveDistance : 0;
-                        let curveDirectionY = curveDistance > 10 ? curveDragY / curveDistance : 0;
-                        
-                        // Αποθήκευσε το curve για να εφαρμοστεί στο collision
-                        this.selectedPlayer.pendingCurve = {
-                            strength: curveStrength,
-                            directionX: curveDirectionX,
-                            directionY: curveDirectionY
-                        };
-                        
-                        console.log('🌀 Curve set:', curveStrength.toFixed(2), 'Direction:', curveDirectionX.toFixed(2), curveDirectionY.toFixed(2));
-                        
-                        // Τώρα κάνε το shot με την αποθηκευμένη δύναμη
-                        const { dragX: savedDragX, dragY: savedDragY } = this.selectedPlayer.shotPower;
-                        this.selectedPlayer.shoot(savedDragX, savedDragY);
-                        
-                        // Reset curve adjustment mode
-                        this.selectedPlayer.curveAdjusting = false;
-                        this.selectedPlayer.shotPower = null;
-                    } else {
-                        // Κανονικό shot χωρίς curve
-                        this.selectedPlayer.shoot(dragX, dragY);
-                    }
-                    
-                    // Εκτόξευση με slingshot mechanics
+                    // Κανονικό shot
                     this.selectedPlayer.shoot(dragX, dragY);
                     
                     // Στείλε το shot στο Firebase αν είναι multiplayer
